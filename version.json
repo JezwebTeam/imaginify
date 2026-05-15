@@ -1,0 +1,5 @@
+{
+  "version": "1.0.0",
+  "url": "https://jezpress.com/imaginify",
+  "notes": "Initial release. Resize, crop, compress and convert images in batch."
+}
