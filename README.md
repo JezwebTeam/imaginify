@@ -4,8 +4,6 @@ A modern dark-mode desktop app for Windows and macOS to resize, crop, compress a
 
 Made by **[JezPress](https://jezpress.com/)**.
 
-![Imaginify icon](icon.png)
-
 ## Features
 
 - Add files or whole folders (sub-folders included).
@@ -17,7 +15,6 @@ Made by **[JezPress](https://jezpress.com/)**.
 - **Format conversion**: keep original, JPG, PNG, or WEBP.
 - Output folder + filename suffix (default `_optimised`).
 - Live progress bar and "saved X MB" summary on completion.
-- **Auto update check** against `https://jezpress.com/imaginify/version.json` - silent on startup, plus a manual "Check for updates" button in the header.
 
 ## Run from source
 
@@ -47,24 +44,6 @@ bash build_macos.sh
 
 Produces `dist/Imaginify.app`. Drag into `/Applications`. First launch: right-click -> Open (because the app isn't code-signed yet).
 
-## Update server
-
-The app checks `UPDATE_CHECK_URL = "https://jezpress.com/imaginify/version.json"` on startup (silently) and via the "Check for updates" button.
-
-Upload a JSON file at that URL with this shape to push updates to users:
-
-```json
-{
-  "version": "1.1.0",
-  "url": "https://jezpress.com/imaginify",
-  "notes": "Bug fixes and a new preset"
-}
-```
-
-When the version is newer than the user's installed `__version__`, the app shows a dialog with the release notes and offers to open the URL in their browser. There's a template `version.json` in the repo you can copy onto the JezPress server.
-
-To release a new version: bump `__version__` in `imaginify.py`, rebuild the .exe/.app, upload them to your download page, and update `version.json` on the server.
-
 ## Best-quality compression notes
 
 - **JPG** - `optimize` + `progressive` + 4:4:4 chroma subsampling at quality >= 90.
@@ -82,7 +61,6 @@ To release a new version: bump `__version__` in `imaginify.py`, rebuild the .exe
 | `run.bat` | Launch from source on Windows |
 | `build_windows.bat` | Build `dist/Imaginify.exe` |
 | `build_macos.sh` | Build `dist/Imaginify.app` |
-| `version.json` | Template for the update server |
 | `requirements.txt` | Python dependencies |
 
 ---

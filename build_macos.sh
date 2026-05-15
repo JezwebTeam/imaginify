@@ -26,7 +26,7 @@ echo "Generating icon..."
 python3 make_icon.py
 echo
 
-# Convert icon.png -> icon.icns for crisp Mac rendering (uses iconutil + sips, both built in)
+# Convert icon.png -> icon.icns for crisp Mac rendering
 if command -v iconutil >/dev/null 2>&1 && command -v sips >/dev/null 2>&1 ; then
     echo "Converting icon to .icns ..."
     rm -rf icon.iconset
@@ -44,7 +44,7 @@ if command -v iconutil >/dev/null 2>&1 && command -v sips >/dev/null 2>&1 ; then
     iconutil -c icns icon.iconset
     ICON_FLAG="--icon icon.icns"
 else
-    echo "iconutil/sips not available - using PNG icon (still works, slightly less crisp)."
+    echo "iconutil/sips not available - using PNG icon."
     ICON_FLAG="--icon icon.png"
 fi
 echo
@@ -54,7 +54,7 @@ rm -rf build dist Imaginify.spec
 echo
 
 echo "Building Imaginify.app with PyInstaller (this can take a minute)..."
-pyinstaller \
+python3 -m PyInstaller \
     --windowed \
     --name Imaginify \
     $ICON_FLAG \
@@ -69,7 +69,7 @@ echo "=== BUILD SUCCESSFUL ==="
 echo
 echo "Find your app at:  $(pwd)/dist/Imaginify.app"
 echo
-echo "First launch tip: macOS may say 'Imaginify is from an unidentified developer'."
+echo "First launch tip: macOS may say 'unidentified developer'."
 echo "Right-click the app -> Open -> Open. After that it launches normally."
 echo
 echo "Optional: drag Imaginify.app into /Applications to install it system-wide."

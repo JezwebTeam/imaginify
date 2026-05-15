@@ -10,16 +10,12 @@ Requirements:
 
 import os
 import sys
-import json
 import threading
-import urllib.request
 from pathlib import Path
 
 __version__ = "1.0.0"
 APP_NAME = "Imaginify"
 APP_AUTHOR = "JezPress"
-APP_HOMEPAGE = "https://jezpress.com/"
-UPDATE_CHECK_URL = "https://jezpress.com/imaginify/version.json"
 
 try:
     import customtkinter as ctk
@@ -142,49 +138,6 @@ def _human(n):
     return f"{n:.1f} TB"
 
 
-def _parse_version(v):
-    """Parse a version string like '1.2.3' into a tuple for comparison."""
-    parts = []
-    for p in str(v).strip().lstrip("v").split("."):
-        try:
-            parts.append(int(p))
-        except ValueError:
-            digits = "".join(c for c in p if c.isdigit())
-            parts.append(int(digits) if digits else 0)
-    return tuple(parts)
-
-
-def fetch_latest_version(url=UPDATE_CHECK_URL, timeout=5):
-    """Fetch latest version metadata JSON from the update server.
-
-    Expected JSON:
-        {
-            "version":  "1.1.0",
-            "url":      "https://jezpress.com/imaginify",
-            "notes":    "Optional release notes"
-        }
-    """
-    try:
-        req = urllib.request.Request(
-            url,
-            headers={"User-Agent": f"Imaginify/{__version__}"},
-        )
-        with urllib.request.urlopen(req, timeout=timeout) as resp:
-            data = json.loads(resp.read().decode("utf-8"))
-        if "version" not in data:
-            return None
-        return data
-    except Exception:
-        return None
-
-
-def is_newer(remote, local=__version__):
-    try:
-        return _parse_version(remote) > _parse_version(local)
-    except Exception:
-        return False
-
-
 class FileRow(ctk.CTkFrame):
     """One file row with a checkbox AND a click-to-preview area."""
 
@@ -299,11 +252,6 @@ class Imaginify:
                       fg_color="transparent", border_width=1,
                       border_color=TEXT_DIM, hover_color=LIST_HOVER
                       ).grid(row=0, column=6, padx=6, sticky="e")
-        ctk.CTkButton(header, text="Check for updates", width=140,
-                      command=lambda: self.check_for_updates(manual=True),
-                      fg_color="transparent", border_width=1,
-                      border_color=TEXT_DIM, hover_color=LIST_HOVER
-                      ).grid(row=0, column=7, padx=(6, 0), sticky="e")
 
         body = ctk.CTkFrame(self.root, fg_color="transparent")
         body.grid(row=1, column=0, sticky="nsew", padx=16, pady=6)
@@ -610,48 +558,6 @@ class Imaginify:
         if folder:
             self.output_var.set(folder)
 
-    # ------------------- Update check --------------------- #
-    def check_for_updates(self, manual=False):
-        def worker():
-            data = fetch_latest_version()
-            self.root.after(0, lambda: self._handle_update_result(data, manual))
-        threading.Thread(target=worker, daemon=True).start()
-
-    def _handle_update_result(self, data, manual):
-        if not data:
-            if manual:
-                messagebox.showinfo(
-                    "Check for updates",
-                    "Couldn't reach the update server. "
-                    "Please check your internet connection and try again.")
-            return
-        remote = str(data.get("version", "")).strip()
-        if not remote:
-            if manual:
-                messagebox.showinfo("Check for updates",
-                                    "Could not read version info from server.")
-            return
-        if is_newer(remote, __version__):
-            url = data.get("url") or APP_HOMEPAGE
-            notes = data.get("notes", "")
-            msg = (f"A new version of Imaginify is available.\n\n"
-                   f"Installed:   v{__version__}\n"
-                   f"Latest:      v{remote}\n\n")
-            if notes:
-                msg += f"What's new:\n{notes}\n\n"
-            msg += f"Open {url} to download?"
-            if messagebox.askyesno("Update available", msg):
-                try:
-                    import webbrowser
-                    webbrowser.open(url)
-                except Exception:
-                    pass
-        elif manual:
-            messagebox.showinfo(
-                "Check for updates",
-                f"You're up to date.\n\nImaginify v{__version__}")
-
-    # ------------------- Preview & crop --------------------- #
     def _render_preview(self):
         self.canvas.delete("all")
         if self.current_img is None:
@@ -746,7 +652,6 @@ class Imaginify:
         ix2, iy2 = self._canvas_to_image(x2, y2)
         return (ix1, iy1, ix2, iy2)
 
-    # ------------------- Processing --------------------- #
     def start_processing(self):
         targets = [p for p in self.files if p in self.checked_paths]
         if not targets:
@@ -846,9 +751,7 @@ class Imaginify:
 
 def main():
     root = ctk.CTk()
-    app = Imaginify(root)
-    # Silent update check 2 seconds after launch
-    root.after(2000, lambda: app.check_for_updates(manual=False))
+    Imaginify(root)
     root.mainloop()
 
 

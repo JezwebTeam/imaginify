@@ -34,7 +34,7 @@ if exist Imaginify.spec del Imaginify.spec
 echo.
 
 echo Building Imaginify.exe with PyInstaller (this can take a minute)...
-pyinstaller ^
+python -m PyInstaller ^
     --onefile ^
     --windowed ^
     --name Imaginify ^
