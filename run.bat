@@ -1,5 +1,5 @@
 @echo off
-REM Imaginify launcher - installs Pillow + CustomTkinter if missing, then runs the app.
+REM Imaginify launcher - installs dependencies if missing, then runs the app.
 cd /d "%~dp0"
 
 where python >nul 2>nul
@@ -11,11 +11,11 @@ if errorlevel 1 (
     exit /b 1
 )
 
-python -c "import PIL, customtkinter" 2>nul
+python -c "import PIL, customtkinter, darkdetect" 2>nul
 if errorlevel 1 (
     echo First-time setup - installing required packages...
     python -m pip install --upgrade pip
-    python -m pip install Pillow customtkinter
+    python -m pip install -r requirements.txt
     if errorlevel 1 (
         echo.
         echo Package install failed. Check your internet connection and try again.

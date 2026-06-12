@@ -63,14 +63,14 @@ def make_icon(size: int = 512) -> Image.Image:
 
 
 def main():
-    img = make_icon(512)
+    img = make_icon(1024)
 
     # Multi-resolution .ico for Windows
     ico_sizes = [(s, s) for s in (16, 32, 48, 64, 128, 256)]
     img.save("icon.ico", format="ICO", sizes=ico_sizes)
     print("Wrote icon.ico")
 
-    # 512px PNG for Mac/Linux (build script can convert to .icns)
+    # 1024px PNG for Mac/Linux (build script can convert to .icns)
     img.save("icon.png")
     print("Wrote icon.png")
 

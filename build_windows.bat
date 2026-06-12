@@ -20,7 +20,7 @@ if errorlevel 1 (
 
 echo Installing build dependencies...
 python -m pip install --upgrade pip >nul
-python -m pip install Pillow customtkinter pyinstaller || (echo Pip install failed & pause & exit /b 1)
+python -m pip install -r requirements.txt pyinstaller || (echo Pip install failed & pause & exit /b 1)
 echo.
 
 echo Generating icon...
@@ -39,7 +39,9 @@ python -m PyInstaller ^
     --windowed ^
     --name Imaginify ^
     --icon icon.ico ^
-    --collect-data customtkinter ^
+    --collect-all customtkinter ^
+    --collect-all darkdetect ^
+    --hidden-import darkdetect ^
     --clean ^
     --noconfirm ^
     imaginify.py

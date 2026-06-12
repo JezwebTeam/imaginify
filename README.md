@@ -24,9 +24,10 @@ Requires Python 3.10+ (https://www.python.org/downloads/).
 
 **Mac / Linux** - in Terminal:
 ```bash
-pip3 install -r requirements.txt
-python3 imaginify.py
+bash run_macos.sh
 ```
+
+The launcher creates a local `.venv`, installs dependencies there, and starts the app.
 
 ## Build a standalone package
 
@@ -36,13 +37,15 @@ Each platform must be built on that platform - PyInstaller can't cross-compile.
 
 Double-click `build_windows.bat` on a Windows machine. Produces `dist\Imaginify.exe` (~40 MB, single file, no Python required to run).
 
-### macOS .app
+### macOS .app + .dmg
 
 ```bash
 bash build_macos.sh
 ```
 
-Produces `dist/Imaginify.app`. Drag into `/Applications`. First launch: right-click -> Open (because the app isn't code-signed yet).
+Produces `dist/Imaginify.app` and `dist/Imaginify.dmg`. The build script uses a local `.venv`, bundles CustomTkinter's macOS assets, creates a proper `.icns` icon, applies an ad-hoc signature when `codesign` is available, and packages the app into a drag-to-Applications DMG.
+
+Drag into `/Applications`. First launch: right-click -> Open (because the app isn't notarized yet).
 
 ## Best-quality compression notes
 
@@ -59,8 +62,9 @@ Produces `dist/Imaginify.app`. Drag into `/Applications`. First launch: right-cl
 | `imaginify.py` | The app |
 | `make_icon.py` | Generates `icon.ico` and `icon.png` |
 | `run.bat` | Launch from source on Windows |
+| `run_macos.sh` | Launch from source on macOS/Linux |
 | `build_windows.bat` | Build `dist/Imaginify.exe` |
-| `build_macos.sh` | Build `dist/Imaginify.app` |
+| `build_macos.sh` | Build `dist/Imaginify.app` and `dist/Imaginify.dmg` |
 | `requirements.txt` | Python dependencies |
 
 ---
