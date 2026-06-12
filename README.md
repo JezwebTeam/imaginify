@@ -46,7 +46,7 @@ Current options:
 
 1. To run from source, install Python 3.10+ and run `bash run_macos.sh`.
 2. To create a standalone Mac package, run `bash build_macos.sh` on a Mac.
-3. After the build finishes, use `dist/Imaginify.app` or `dist/Imaginify.dmg`.
+3. After the build finishes, use `dist/Imaginify.app` or the generated DMG in `dist/`.
 4. To install from the DMG, open it and drag `Imaginify.app` into Applications.
 5. On first launch, right-click `Imaginify.app`, choose **Open**, then confirm **Open**. This is needed because the app is not notarized yet.
 
@@ -124,7 +124,17 @@ Double-click `build_windows.bat` on a Windows machine. Produces `dist\Imaginify.
 bash build_macos.sh
 ```
 
-Produces `dist/Imaginify.app` and `dist/Imaginify.dmg`. The build script uses a local `.venv`, bundles CustomTkinter's macOS assets, creates a proper `.icns` icon, applies an ad-hoc signature when `codesign` is available, and packages the app into a drag-to-Applications DMG.
+Produces `dist/Imaginify.app` and an architecture-labelled DMG such as `dist/Imaginify-arm64.dmg`, `dist/Imaginify-x86_64.dmg`, or `dist/Imaginify-universal2.dmg`. The build script uses a local `.venv`, bundles CustomTkinter's macOS assets, creates a proper `.icns` icon, applies an ad-hoc signature when `codesign` is available, and packages the app into a drag-to-Applications DMG.
+
+By default, the macOS build targets the current Python architecture, usually `arm64` on Apple Silicon or `x86_64` on Intel Macs. To build another architecture, set `IMAGINIFY_TARGET_ARCH`:
+
+```bash
+IMAGINIFY_TARGET_ARCH=arm64 bash build_macos.sh
+IMAGINIFY_TARGET_ARCH=x86_64 bash build_macos.sh
+IMAGINIFY_TARGET_ARCH=universal2 bash build_macos.sh
+```
+
+Universal builds require a universal2 Python/Tk/Pillow stack. If that is not available, publish separate `arm64` and `x86_64` DMGs.
 
 Drag into `/Applications`. First launch: right-click -> Open (because the app isn't notarized yet).
 
@@ -159,8 +169,13 @@ Commit source changes, scripts, and documentation. Attach built `.exe` and `.dmg
 | `run.bat` | Launch from source on Windows |
 | `run_macos.sh` | Launch from source on macOS/Linux |
 | `build_windows.bat` | Build `dist/Imaginify.exe` |
-| `build_macos.sh` | Build `dist/Imaginify.app` and `dist/Imaginify.dmg` |
+| `build_macos.sh` | Build `dist/Imaginify.app` and an architecture-labelled macOS DMG |
+| `push_to_github.bat` | Safely commit and push project files to `JezwebTeam/imaginify` |
 | `requirements.txt` | Python dependencies |
+| `requirements-build.txt` | Build-only Python dependencies |
+| `.gitattributes` | Keeps shell scripts LF and Windows batch files CRLF |
+| `.gitignore` | Keeps generated build outputs and local environments out of Git |
+| `version.json` | App version metadata |
 
 ---
 

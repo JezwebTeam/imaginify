@@ -1,26 +1,21 @@
 @echo off
 REM ----------------------------------------------------------------
-REM  Imaginify - push to GitHub using GitHub CLI
-REM  Creates the repo (if it doesn't exist), commits, and pushes.
+REM  Imaginify - push current repo changes to GitHub
+REM  Target repo: https://github.com/JezwebTeam/imaginify
 REM ----------------------------------------------------------------
 setlocal
 cd /d "%~dp0"
 
-echo === Imaginify - push to GitHub (using gh) ===
+set "REPO=JezwebTeam/imaginify"
+set "REMOTE_URL=https://github.com/%REPO%.git"
+set "COMMIT_MESSAGE=%~1"
+if "%COMMIT_MESSAGE%"=="" set "COMMIT_MESSAGE=Update Imaginify"
+
+echo === Imaginify - push to GitHub ===
 echo Folder: %CD%
+echo Repo:   https://github.com/%REPO%
 echo.
 
-REM ---- Check gh ----
-where gh >nul 2>nul
-if errorlevel 1 (
-    echo GitHub CLI is not installed or not on PATH.
-    echo Install it from https://cli.github.com/  (winget install --id GitHub.cli)
-    echo Then re-run this script.
-    pause
-    exit /b 1
-)
-
-REM ---- Check git ----
 where git >nul 2>nul
 if errorlevel 1 (
     echo Git is not installed.
@@ -29,10 +24,17 @@ if errorlevel 1 (
     exit /b 1
 )
 
-REM ---- Auth ----
+where gh >nul 2>nul
+if errorlevel 1 (
+    echo GitHub CLI is not installed or not on PATH.
+    echo Install it from https://cli.github.com/  (winget install --id GitHub.cli)
+    pause
+    exit /b 1
+)
+
 gh auth status >nul 2>nul
 if errorlevel 1 (
-    echo You aren't signed in to GitHub CLI. Launching browser login...
+    echo You are not signed in to GitHub CLI. Launching browser login...
     gh auth login -h github.com -p https -w
     if errorlevel 1 (
         echo Login failed.
@@ -41,46 +43,70 @@ if errorlevel 1 (
     )
 )
 
-REM ---- Clean up any leftover state ----
-if exist .git (
-    echo Removing existing .git folder...
-    attrib -r -h -s .git /s /d >nul 2>nul
-    rmdir /s /q .git
+if not exist .git (
+    echo Initialising local git repo...
+    git init -b main
+    if errorlevel 1 (
+        echo Git init failed.
+        pause
+        exit /b 1
+    )
 )
-if exist build rmdir /s /q build
-if exist dist rmdir /s /q dist
-if exist __pycache__ rmdir /s /q __pycache__
-if exist icon.ico del icon.ico
-if exist icon.png del icon.png
-if exist icon.icns del icon.icns
-if exist icon.iconset rmdir /s /q icon.iconset
 
-echo Initialising local git repo...
-git init -b main
-git config user.email "abner@jezweb.net"
-git config user.name "Abner"
-git add .
-git commit -m "Initial commit: Imaginify v1.0.0 - made by JezPress"
+git remote get-url origin >nul 2>nul
 if errorlevel 1 (
-    echo Commit failed.
+    git remote add origin "%REMOTE_URL%"
+) else (
+    git remote set-url origin "%REMOTE_URL%"
+)
+
+echo.
+echo Checking repository access...
+gh repo view %REPO% >nul 2>nul
+if errorlevel 1 (
+    echo GitHub repo %REPO% was not found or you do not have access.
+    echo Create it first, then rerun this script.
     pause
     exit /b 1
 )
 
 echo.
-echo Checking whether the GitHub repo already exists...
-gh repo view abnercalapiz/imaginify >nul 2>nul
-if %ERRORLEVEL%==0 (
-    echo Repo exists - adding remote and pushing...
-    git remote add origin git@github.com:abnercalapiz/imaginify.git 2>nul
-    git push -u origin main
-) else (
-    echo Creating the repo on GitHub and pushing...
-    gh repo create abnercalapiz/imaginify --public --source=. --remote=origin --push --description "Imaginify - a modern desktop image tool by JezPress. Resize, crop, compress and convert images in batch."
+echo Updating local branch from origin/main...
+git pull --ff-only origin main
+if errorlevel 1 (
+    echo Pull failed. Commit, stash, or resolve local changes, then rerun this script.
+    pause
+    exit /b 1
 )
 
+echo.
+echo Current changes:
+git status --short
+echo.
+
+git add README.md build_macos.sh build_windows.bat run.bat run_macos.sh make_icon.py imaginify.py requirements.txt requirements-build.txt .gitignore .gitattributes push_to_github.bat version.json
 if errorlevel 1 (
-    echo.
+    echo Git add failed.
+    pause
+    exit /b 1
+)
+
+git diff --cached --quiet
+if not errorlevel 1 (
+    echo Nothing staged to commit.
+) else (
+    git commit -m "%COMMIT_MESSAGE%"
+    if errorlevel 1 (
+        echo Commit failed.
+        pause
+        exit /b 1
+    )
+)
+
+echo.
+echo Pushing to GitHub...
+git push -u origin main
+if errorlevel 1 (
     echo Push failed. See the messages above.
     pause
     exit /b 1
@@ -88,7 +114,6 @@ if errorlevel 1 (
 
 echo.
 echo === SUCCESS ===
-gh repo view abnercalapiz/imaginify --web 2>nul
-echo Repo: https://github.com/abnercalapiz/imaginify
+echo Repo: https://github.com/%REPO%
 pause
 endlocal

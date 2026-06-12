@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
 # ----------------------------------------------------------------
 # Imaginify - macOS build script
-# Produces dist/Imaginify.app and dist/Imaginify.dmg
+# Produces dist/Imaginify.app and dist/Imaginify-<arch>.dmg
 # Run from Terminal:  bash build_macos.sh
 # ----------------------------------------------------------------
 set -euo pipefail
@@ -36,14 +36,41 @@ if [ ! -x ".venv/bin/python" ]; then
 fi
 
 PYTHON=".venv/bin/python"
+if ! "$PYTHON" -c "import sys; raise SystemExit(0 if sys.version_info >= (3, 10) else 1)"; then
+    echo "The existing .venv uses an unsupported Python version."
+    echo "Remove .venv and rerun this script with Python 3.10+."
+    exit 1
+fi
+
 PY_ARCH=$("$PYTHON" -c "import platform; print(platform.machine())")
+TARGET_ARCH="${IMAGINIFY_TARGET_ARCH:-$PY_ARCH}"
+case "$TARGET_ARCH" in
+    arm64|x86_64|universal2)
+        ;;
+    *)
+        echo "Unsupported target architecture: $TARGET_ARCH"
+        echo "Use arm64, x86_64, or universal2."
+        exit 1
+        ;;
+esac
+
 echo "Python architecture: $PY_ARCH"
 echo "Python version: $("$PYTHON" --version)"
+echo "Target architecture: $TARGET_ARCH"
 echo
 
 echo "Installing build dependencies..."
 "$PYTHON" -m pip install --upgrade pip
-"$PYTHON" -m pip install -r requirements.txt pyinstaller
+"$PYTHON" -m pip install -r requirements.txt -r requirements-build.txt
+echo
+
+echo "Verifying GUI dependencies..."
+if ! "$PYTHON" -c "import tkinter; import customtkinter; import darkdetect; from PIL import ImageTk"; then
+    echo "Tkinter/CustomTkinter validation failed."
+    echo "Use a Tk-enabled Python install, such as python.org Python for macOS."
+    echo "If you use Homebrew, make sure Tcl/Tk support is installed and available."
+    exit 1
+fi
 echo
 
 echo "Generating icon..."
@@ -81,11 +108,9 @@ echo "Building Imaginify.app with PyInstaller (this can take a minute)..."
 # --collect-all customtkinter is critical on macOS:
 #   --collect-data alone misses theme JSON files, which makes the window render blank
 # --collect-all darkdetect handles CTk's appearance-mode detection
-# --target-arch matches the running Python so we don't end up with a wrong-arch binary
-TARGET_ARCH_ARGS=()
-if [ "$PY_ARCH" = "arm64" ] || [ "$PY_ARCH" = "x86_64" ]; then
-    TARGET_ARCH_ARGS=(--target-arch "$PY_ARCH")
-fi
+# By default, --target-arch matches the running Python. Override with:
+#   IMAGINIFY_TARGET_ARCH=universal2 bash build_macos.sh
+TARGET_ARCH_ARGS=(--target-arch "$TARGET_ARCH")
 
 "$PYTHON" -m PyInstaller \
     --windowed \
@@ -110,7 +135,7 @@ fi
 
 APP_PATH="dist/Imaginify.app"
 DMG_STAGING_DIR="build/dmg"
-DMG_PATH="dist/Imaginify.dmg"
+DMG_PATH="dist/Imaginify-${TARGET_ARCH}.dmg"
 
 if command -v hdiutil >/dev/null 2>&1; then
     echo
