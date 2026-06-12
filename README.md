@@ -16,28 +16,39 @@ Made by **[JezPress](https://jezpress.com/)**.
 - Output folder + filename suffix (default `_optimised`).
 - Live progress bar and "saved X MB" summary on completion.
 
-## Download and install
+## Installation status
 
-Download the latest Windows or macOS package from the GitHub Releases page:
+Prebuilt downloads are not published yet. The GitHub Releases page will be used later for install-ready files:
 
 https://github.com/JezwebTeam/imaginify/releases
 
+For now, use one of these options:
+
+- Run the app from source with the scripts below.
+- Build your own Windows `.exe` on Windows.
+- Build your own macOS `.app` and `.dmg` on macOS.
+
+Built files are not committed to this repo because `dist/` is ignored. When release packages are ready, attach the `.exe` and `.dmg` files to a GitHub Release.
+
 ### Windows users
 
-1. Download `Imaginify.exe`.
-2. Move it somewhere convenient, such as your Desktop or Downloads folder.
-3. Double-click `Imaginify.exe` to open the app.
+Current options:
+
+1. To run from source, install Python 3.10+ and double-click `run.bat`.
+2. To create a standalone app, double-click `build_windows.bat`.
+3. After the build finishes, use `dist\Imaginify.exe`.
 4. If Windows SmartScreen warns that the app is from an unknown publisher, click **More info** and then **Run anyway**.
-5. No separate Python install is needed when using the `.exe`.
+5. Users do not need Python installed when running the built `.exe`.
 
 ### macOS users
 
-1. Download `Imaginify.dmg`.
-2. Double-click the DMG file to open it.
-3. Drag `Imaginify.app` into the **Applications** shortcut.
-4. Eject the DMG.
-5. Open the app from Applications.
-6. On first launch, right-click `Imaginify.app`, choose **Open**, then confirm **Open**. This is needed because the app is not notarized yet.
+Current options:
+
+1. To run from source, install Python 3.10+ and run `bash run_macos.sh`.
+2. To create a standalone Mac package, run `bash build_macos.sh` on a Mac.
+3. After the build finishes, use `dist/Imaginify.app` or `dist/Imaginify.dmg`.
+4. To install from the DMG, open it and drag `Imaginify.app` into Applications.
+5. On first launch, right-click `Imaginify.app`, choose **Open**, then confirm **Open**. This is needed because the app is not notarized yet.
 
 ## How to use Imaginify
 
