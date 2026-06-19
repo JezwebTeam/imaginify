@@ -12,6 +12,13 @@ icon.png
 icon.icns
 icon.iconset/
 
+# Installer build outputs and intermediates
+dist/Imaginify-Setup-*.exe
+dist/Imaginify-*.pkg
+dist/Imaginify-component.pkg
+dist/_pkg_staging/
+installer_macos/resources/LICENSE.txt
+
 # Local environments
 .venv/
 venv/

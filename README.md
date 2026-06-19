@@ -118,6 +118,12 @@ Each platform must be built on that platform - PyInstaller can't cross-compile.
 
 Double-click `build_windows.bat` on a Windows machine. Produces `dist\Imaginify.exe` (~40 MB, single file, no Python required to run).
 
+#### Windows installer wizard (.exe)
+
+After `dist\Imaginify.exe` exists, double-click `build_installer_windows.bat` to produce `dist\Imaginify-Setup-<version>.exe`. The wizard pages are: **Welcome → License → Install location → Ready → Installing → Finish** (with a "Launch Imaginify" tickbox). Requires [Inno Setup 6](https://jrsoftware.org/isdl.php) (`winget install --id JRSoftware.InnoSetup`).
+
+The installer creates a Start Menu shortcut, an optional desktop icon, an Add/Remove Programs entry, and an uninstaller. Unsigned installers trigger SmartScreen — users click **More info → Run anyway**.
+
 #### macOS .app + .dmg
 
 ```bash
@@ -137,6 +143,18 @@ IMAGINIFY_TARGET_ARCH=universal2 bash build_macos.sh
 Universal builds require a universal2 Python/Tk/Pillow stack. If that is not available, publish separate `arm64` and `x86_64` DMGs.
 
 Drag into `/Applications`. First launch: right-click -> Open (because the app isn't notarized yet).
+
+#### macOS installer wizard (.pkg)
+
+After `dist/Imaginify.app` exists, run:
+
+```bash
+bash build_installer_macos.sh
+```
+
+Produces `dist/Imaginify-<version>.pkg`. The wizard pages are: **Introduction → License → Destination → Installation Type → Installing → Summary**. The app installs to `/Applications/Imaginify.app`. Uses Apple's built-in `pkgbuild` + `productbuild` — no extra tools to install.
+
+Unsigned `.pkg` files are blocked by Gatekeeper on first launch. Users right-click the `.pkg` → **Open → Open** to bypass once. To remove the prompt, sign and notarize the `.pkg` with an Apple Developer ID.
 
 ### Generated files
 
@@ -170,6 +188,11 @@ Commit source changes, scripts, and documentation. Attach built `.exe` and `.dmg
 | `run_macos.sh` | Launch from source on macOS/Linux |
 | `build_windows.bat` | Build `dist/Imaginify.exe` |
 | `build_macos.sh` | Build `dist/Imaginify.app` and an architecture-labelled macOS DMG |
+| `installer_windows.iss` | Inno Setup script for the Windows installer wizard |
+| `build_installer_windows.bat` | Build `dist/Imaginify-Setup-<version>.exe` from `installer_windows.iss` |
+| `installer_macos/` | Wizard pages (welcome / conclusion HTML) and `distribution.xml` for the .pkg |
+| `build_installer_macos.sh` | Build `dist/Imaginify-<version>.pkg` using `pkgbuild` + `productbuild` |
+| `LICENSE.txt` | Terms shown on the License page of both installer wizards |
 | `push_to_github.bat` | Safely commit and push project files to `JezwebTeam/imaginify` |
 | `requirements.txt` | Python dependencies |
 | `requirements-build.txt` | Build-only Python dependencies |
