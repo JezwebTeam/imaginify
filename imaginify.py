@@ -32,6 +32,20 @@ except ImportError:
 import tkinter as tk
 from tkinter import filedialog, messagebox
 
+try:
+    from tkinterdnd2 import TkinterDnD, DND_FILES
+    DND_AVAILABLE = True
+except ImportError:
+    DND_AVAILABLE = False
+
+
+class CTkDnD(ctk.CTk):
+    """CTk root with tkinterdnd2 wired in so widgets can accept OS-level file drops."""
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        if DND_AVAILABLE:
+            self.TkdndVersion = TkinterDnD._require(self)
+
 SUPPORTED_EXTS = {".jpg", ".jpeg", ".png", ".webp", ".bmp", ".tif", ".tiff", ".gif"}
 
 ctk.set_appearance_mode("dark")
@@ -216,6 +230,40 @@ class Imaginify:
         self.suffix_var = tk.StringVar(value="_optimised")
 
         self._build_ui()
+        self._register_drop_targets()
+
+    def _register_drop_targets(self):
+        """Enable OS-level drag-and-drop from Finder / Explorer onto the window."""
+        if not DND_AVAILABLE:
+            return
+        for target in (self.root, self.file_list_frame, self.empty_label, self.canvas):
+            try:
+                target.drop_target_register(DND_FILES)
+                target.dnd_bind("<<Drop>>", self._on_drop)
+            except Exception:
+                pass
+
+    def _on_drop(self, event):
+        try:
+            raw = self.root.tk.splitlist(event.data)
+        except Exception:
+            raw = [event.data]
+        paths = []
+        for entry in raw:
+            entry = entry.strip().strip("{}")
+            if not entry:
+                continue
+            path = Path(entry)
+            if path.is_dir():
+                for p in path.rglob("*"):
+                    if p.is_file() and p.suffix.lower() in SUPPORTED_EXTS:
+                        paths.append(str(p))
+            elif path.is_file() and path.suffix.lower() in SUPPORTED_EXTS:
+                paths.append(str(path))
+        if paths:
+            self._add_paths(paths)
+        else:
+            self.status.configure(text="Nothing added - dropped items are not supported images.")
 
     def _build_ui(self):
         self.root.grid_columnconfigure(0, weight=1)
@@ -292,9 +340,12 @@ class Imaginify:
 
         self.file_list_frame = ctk.CTkScrollableFrame(left_card, fg_color="transparent")
         self.file_list_frame.grid(row=2, column=0, sticky="nsew", padx=8, pady=(4, 10))
+        empty_hint = ('No files yet.\nDrag images or folders here,\nor click "Add files" / "Add folder".'
+                      if DND_AVAILABLE else
+                      'No files yet.\nClick "Add files" or "Add folder" to start.')
         self.empty_label = ctk.CTkLabel(
             self.file_list_frame,
-            text='No files yet.\nClick "Add files" or "Add folder" to start.',
+            text=empty_hint,
             text_color=TEXT_DIM, font=ctk.CTkFont(size=11), justify="center")
         self.empty_label.pack(pady=30)
 
@@ -428,12 +479,16 @@ class Imaginify:
             w.destroy()
         self.file_rows = []
         if not self.files:
-            ctk.CTkLabel(
+            empty_hint = ('No files yet.\nDrag images or folders here,\nor click "Add files" / "Add folder".'
+                          if DND_AVAILABLE else
+                          'No files yet.\nClick "Add files" or "Add folder".')
+            self.empty_label = ctk.CTkLabel(
                 self.file_list_frame,
-                text='No files yet.\nClick "Add files" or "Add folder".',
+                text=empty_hint,
                 text_color=TEXT_DIM, font=ctk.CTkFont(size=11),
-                justify="center"
-            ).pack(pady=30)
+                justify="center")
+            self.empty_label.pack(pady=30)
+            self._register_drop_targets()
             self._update_counts()
             return
         for i, p in enumerate(self.files):
@@ -750,7 +805,7 @@ class Imaginify:
 
 
 def main():
-    root = ctk.CTk()
+    root = CTkDnD()
     Imaginify(root)
     root.mainloop()
 

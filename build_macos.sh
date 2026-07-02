@@ -118,7 +118,9 @@ TARGET_ARCH_ARGS=(--target-arch "$TARGET_ARCH")
     "${ICON_ARGS[@]}" \
     --collect-all customtkinter \
     --collect-all darkdetect \
+    --collect-all tkinterdnd2 \
     --hidden-import darkdetect \
+    --hidden-import tkinterdnd2 \
     --osx-bundle-identifier com.jezweb.imaginify \
     "${TARGET_ARCH_ARGS[@]}" \
     --clean \

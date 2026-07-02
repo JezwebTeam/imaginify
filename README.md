@@ -6,6 +6,7 @@ Made by **[JezPress](https://jezpress.com/)**.
 
 ## Features
 
+- **Drag and drop** images or folders straight from Finder / Explorer onto the window.
 - Add files or whole folders (sub-folders included).
 - Per-file **checkboxes** with **Select all / Select none** - process only the images you want.
 - **Quick resize presets**: 1920w, 1280w, 800w, Instagram 1080, Facebook 2048w, 1080p HD.

@@ -41,7 +41,9 @@ python -m PyInstaller ^
     --icon icon.ico ^
     --collect-all customtkinter ^
     --collect-all darkdetect ^
+    --collect-all tkinterdnd2 ^
     --hidden-import darkdetect ^
+    --hidden-import tkinterdnd2 ^
     --clean ^
     --noconfirm ^
     imaginify.py
