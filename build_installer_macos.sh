@@ -13,7 +13,7 @@ set -e
 cd "$(dirname "$0")"
 
 APP_NAME="Imaginify"
-APP_VERSION="1.0.0"
+APP_VERSION="1.0.1"
 BUNDLE_ID="com.jezweb.imaginify"
 APP_BUNDLE="dist/${APP_NAME}.app"
 COMPONENT_PKG="dist/${APP_NAME}-component.pkg"

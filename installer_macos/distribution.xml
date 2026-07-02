@@ -11,7 +11,7 @@
     <domains enable_anywhere="false" enable_currentUserHome="false" enable_localSystem="true"/>
 
     <pkg-ref id="com.jezweb.imaginify"
-             version="1.0.0"
+             version="1.0.1"
              auth="root">Imaginify-component.pkg</pkg-ref>
 
     <choices-outline>

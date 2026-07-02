@@ -1,5 +1,5 @@
 {
-  "version": "1.0.0",
+  "version": "1.0.1",
   "url": "https://jezpress.com/imaginify",
-  "notes": "Initial release. Resize, crop, compress and convert images in batch."
+  "notes": "Drag-and-drop support: drop images or folders from Finder / Explorer onto the window."
 }

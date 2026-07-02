@@ -8,7 +8,7 @@
 ; ============================================================
 
 #define MyAppName       "Imaginify"
-#define MyAppVersion    "1.0.0"
+#define MyAppVersion    "1.0.1"
 #define MyAppPublisher  "JezPress"
 #define MyAppURL        "https://jezpress.com/"
 #define MyAppExeName    "Imaginify.exe"
