@@ -22,17 +22,18 @@ if not exist "dist\Imaginify.exe" (
 )
 
 REM Locate ISCC.exe (Inno Setup Compiler).
+REM NOTE: do NOT use  if "%ISCC%"==""  inside a parenthesized block --
+REM       ProgramFiles(x86) path contains ')' which breaks cmd's parser.
 set "ISCC="
-if exist "%ProgramFiles(x86)%\Inno Setup 6\ISCC.exe" set "ISCC=%ProgramFiles(x86)%\Inno Setup 6\ISCC.exe"
-if exist "%ProgramFiles%\Inno Setup 6\ISCC.exe"      set "ISCC=%ProgramFiles%\Inno Setup 6\ISCC.exe"
-if "%ISCC%"=="" (
-    where ISCC.exe >nul 2>nul
-    if not errorlevel 1 set "ISCC=ISCC.exe"
-)
-if "%ISCC%"=="" (
-    echo Inno Setup Compiler (ISCC.exe) not found.
+if exist "%ProgramFiles(x86)%\Inno Setup 6\ISCC.exe"        set "ISCC=%ProgramFiles(x86)%\Inno Setup 6\ISCC.exe"
+if not defined ISCC if exist "%ProgramFiles%\Inno Setup 6\ISCC.exe"        set "ISCC=%ProgramFiles%\Inno Setup 6\ISCC.exe"
+if not defined ISCC if exist "%LOCALAPPDATA%\Programs\Inno Setup 6\ISCC.exe" set "ISCC=%LOCALAPPDATA%\Programs\Inno Setup 6\ISCC.exe"
+if not defined ISCC where ISCC.exe >nul 2>nul && set "ISCC=ISCC.exe"
+
+if not defined ISCC (
+    echo Inno Setup Compiler ISCC.exe not found.
     echo Install Inno Setup 6 from https://jrsoftware.org/isdl.php
-    echo (or:  winget install --id JRSoftware.InnoSetup)
+    echo   winget install --id JRSoftware.InnoSetup
     pause
     exit /b 1
 )
