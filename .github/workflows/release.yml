@@ -1,0 +1,243 @@
+# ---------------------------------------------------------------------------
+# Release workflow for Imaginify (Python + CustomTkinter, packaged by PyInstaller).
+#
+# Adapted from the canonical JezPress plugin release.yml: same tag trigger, same
+# version gate and the same security invariant, but the artefacts are desktop
+# builds made on each OS (PyInstaller cannot cross-compile) instead of a ZIP.
+#
+# SECURITY INVARIANT - do not undo:
+#   Never interpolate ${{ ... }} into a `run:` block. GitHub substitutes those
+#   into the shell script TEXT before bash parses it, and the release version is
+#   derived from the git TAG, which may legally contain ; $ ` ( ). A crafted tag
+#   would execute arbitrary commands with GITHUB_TOKEN in scope. Org members have
+#   push (so can create tags) but not admin, so interpolation would hand them a
+#   route to the token they are deliberately not trusted with. Pass every value
+#   via `env:` and reference "$VAR" inside the script instead.
+# ---------------------------------------------------------------------------
+name: Release
+
+# Two ways in:
+#   - push an annotated tag `vX.Y.Z`  -> verify, build all platforms, publish the
+#     GitHub release with every installer attached.
+#   - "Run workflow" (workflow_dispatch) on a branch -> verify + build only. The
+#     builds land as workflow artifacts for a hand install check before tagging
+#     (/release step 1d). Nothing is published.
+#
+# Built per release (assets, X.Y.Z = version):
+#   Imaginify-Setup-X.Y.Z.exe               Windows installer wizard (Inno Setup)
+#   Imaginify-X.Y.Z-windows-portable.exe    Windows single-file app
+#   Imaginify-X.Y.Z-macos-arm64.dmg / .pkg  Apple Silicon
+#   Imaginify-X.Y.Z-macos-x86_64.dmg / .pkg Intel Macs
+#   SHA256SUMS.txt
+#
+# Nothing is signed or notarised: Windows SmartScreen and macOS Gatekeeper warn
+# on first launch (the release notes say how to get past it). No repo secrets
+# are needed.
+
+on:
+  push:
+    tags:
+      - 'v*.*.*'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: release-${{ github.ref }}
+  cancel-in-progress: false
+
+jobs:
+  verify:
+    name: Version gate
+    runs-on: ubuntu-latest
+    outputs:
+      version: ${{ steps.version.outputs.version }}
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Resolve and verify version
+        id: version
+        env:
+          REF_TYPE: ${{ github.ref_type }}
+          REF_NAME: ${{ github.ref_name }}
+        run: |
+          if [ "$REF_TYPE" = "tag" ]; then
+            VERSION="${REF_NAME#v}"
+          else
+            VERSION="$(python3 -c 'import json; print(json.load(open("version.json"))["version"])')"
+          fi
+          if ! printf '%s' "$VERSION" | grep -Eq '^[0-9]+\.[0-9]+\.[0-9]+$'; then
+            echo "::error::Version '$VERSION' is not X.Y.Z"
+            exit 1
+          fi
+          # Every version spot (app, version.json, both installers) and the newest
+          # CHANGELOG.md section must equal the tag.
+          python3 .claude/scripts/check_versions.py --expect "$VERSION"
+          echo "version=$VERSION" >> "$GITHUB_OUTPUT"
+          echo "Building v$VERSION ($REF_TYPE $REF_NAME)"
+
+  windows:
+    name: Windows x64
+    needs: verify
+    runs-on: windows-latest
+    env:
+      VERSION: ${{ needs.verify.outputs.version }}
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+
+      # The .bat files end in `pause`; stdin from NUL makes every pause return at once.
+      - name: Build portable exe (build_windows.bat)
+        shell: cmd
+        run: call build_windows.bat < NUL
+
+      - name: Ensure Inno Setup 6
+        shell: pwsh
+        run: |
+          $paths = @("${env:ProgramFiles(x86)}\Inno Setup 6\ISCC.exe", "$env:ProgramFiles\Inno Setup 6\ISCC.exe")
+          if (-not ($paths | Where-Object { Test-Path $_ })) {
+            choco install innosetup --no-progress -y
+            if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+          }
+
+      - name: Build installer (build_installer_windows.bat)
+        shell: cmd
+        run: call build_installer_windows.bat < NUL
+
+      - name: Stage assets
+        shell: bash
+        run: |
+          mkdir -p out
+          test -f dist/Imaginify.exe || { echo "::error::dist/Imaginify.exe was not built"; exit 1; }
+          test -f "dist/Imaginify-Setup-$VERSION.exe" || { echo "::error::dist/Imaginify-Setup-$VERSION.exe was not built (installer_windows.iss version?)"; exit 1; }
+          cp dist/Imaginify.exe "out/Imaginify-$VERSION-windows-portable.exe"
+          cp "dist/Imaginify-Setup-$VERSION.exe" out/
+          ls -l out
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: imaginify-windows
+          path: out/*
+          if-no-files-found: error
+
+  macos:
+    name: macOS ${{ matrix.arch }}
+    needs: verify
+    runs-on: ${{ matrix.runner }}
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - runner: macos-14        # Apple Silicon
+            arch: arm64
+          - runner: macos-15-intel  # Intel. If GitHub retires this label, drop the row and say so in the release notes.
+            arch: x86_64
+    env:
+      VERSION: ${{ needs.verify.outputs.version }}
+      ARCH: ${{ matrix.arch }}
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+
+      # build_macos.sh creates .venv from python3 on PATH, checks Tk, builds the
+      # .app (ad-hoc signed) and the DMG; it targets the runner's own arch.
+      - name: Build app + DMG (build_macos.sh)
+        run: |
+          IMAGINIFY_TARGET_ARCH="$ARCH" bash build_macos.sh
+          ARCHS="$(lipo -archs dist/Imaginify.app/Contents/MacOS/Imaginify)"
+          echo "Binary architectures: $ARCHS"
+          case " $ARCHS " in *" $ARCH "*) ;; *) echo "::error::built for '$ARCHS', expected $ARCH"; exit 1 ;; esac
+
+      - name: Build installer (build_installer_macos.sh)
+        run: bash build_installer_macos.sh
+
+      - name: Stage assets
+        run: |
+          mkdir -p out
+          test -f "dist/Imaginify-$ARCH.dmg" || { echo "::error::dist/Imaginify-$ARCH.dmg was not built"; exit 1; }
+          test -f "dist/Imaginify-$VERSION.pkg" || { echo "::error::dist/Imaginify-$VERSION.pkg was not built (build_installer_macos.sh version?)"; exit 1; }
+          cp "dist/Imaginify-$ARCH.dmg" "out/Imaginify-$VERSION-macos-$ARCH.dmg"
+          cp "dist/Imaginify-$VERSION.pkg" "out/Imaginify-$VERSION-macos-$ARCH.pkg"
+          ls -l out
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: imaginify-macos-${{ matrix.arch }}
+          path: out/*
+          if-no-files-found: error
+
+
+  release:
+    name: Publish GitHub release
+    needs: [verify, windows, macos]
+    if: github.ref_type == 'tag'
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write  # gh release create
+    env:
+      VERSION: ${{ needs.verify.outputs.version }}
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/download-artifact@v4
+        with:
+          pattern: imaginify-*
+          path: assets
+          merge-multiple: true
+
+      - name: Check the asset set and write checksums
+        run: |
+          cd assets
+          fail=0
+          for f in "Imaginify-Setup-$VERSION.exe" \
+                   "Imaginify-$VERSION-windows-portable.exe" \
+                   "Imaginify-$VERSION-macos-arm64.dmg" "Imaginify-$VERSION-macos-arm64.pkg" \
+                   "Imaginify-$VERSION-macos-x86_64.dmg" "Imaginify-$VERSION-macos-x86_64.pkg"; do
+            if [ ! -s "$f" ]; then echo "::error::missing asset $f"; fail=1; fi
+          done
+          [ "$fail" = 0 ] || { ls -l; exit 1; }
+          sha256sum Imaginify-* > SHA256SUMS.txt
+          cat SHA256SUMS.txt
+
+      - name: Release notes
+        run: |
+          {
+            echo "## What's new"
+            echo
+            python3 .claude/scripts/check_versions.py --notes "$VERSION"
+            echo
+            echo "## Downloads"
+            echo
+            echo "### Windows"
+            echo
+            echo "- **Imaginify-Setup-$VERSION.exe** - installer wizard (recommended): Start Menu entry, optional Desktop icon, uninstaller."
+            echo "- **Imaginify-$VERSION-windows-portable.exe** - single-file app, no installation."
+            echo
+            echo "Both are unsigned. Windows SmartScreen warns on first run - click **More info -> Run anyway**."
+            echo
+            echo "### macOS"
+            echo
+            echo "- Apple Silicon (M1 and later): **Imaginify-$VERSION-macos-arm64.dmg** (drag to Applications) or **.pkg** (installer wizard)."
+            echo "- Intel Macs: **Imaginify-$VERSION-macos-x86_64.dmg** or **.pkg**."
+            echo
+            echo "Not notarised yet. First launch: right-click the app (or the .pkg) -> **Open** -> **Open**."
+            echo
+            echo "Checksums: \`SHA256SUMS.txt\`."
+          } > "$RUNNER_TEMP/notes.md"
+          cat "$RUNNER_TEMP/notes.md"
+
+      - name: Create GitHub release
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          gh release create "v$VERSION" assets/* \
+            --title "Imaginify $VERSION" \
+            --notes-file "$RUNNER_TEMP/notes.md" \
+            --verify-tag

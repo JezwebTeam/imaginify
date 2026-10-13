@@ -200,6 +200,9 @@ Commit source changes, scripts, and documentation. Attach built `.exe` and `.dmg
 | `.gitattributes` | Keeps shell scripts LF and Windows batch files CRLF |
 | `.gitignore` | Keeps generated build outputs and local environments out of Git |
 | `version.json` | App version metadata |
+| `CHANGELOG.md` | Release notes, newest first; each section becomes the GitHub release body |
+| `.github/workflows/` | `lint.yml` (checks every push) and `release.yml` (builds every platform and publishes on a `vX.Y.Z` tag) |
+| `CLAUDE.md`, `.claude/` | Claude Code project notes, review agents and the `/release` skill |
 
 ---
 

@@ -30,3 +30,7 @@ Thumbs.db
 .vscode/
 .idea/
 *.swp
+
+# Claude Code - commit the .claude/ bundle, never the machine-local permission
+# cache (it records approved commands verbatim, so it can hold secrets).
+**/.claude/settings.local.json

@@ -1,0 +1,96 @@
+name: Lint
+
+# Every push and pull request: Python syntax + pyflakes, shell scripts and
+# version spots.
+#
+# Why: release.yml builds whatever is tagged, and an unsigned desktop app has no
+# update channel to push a fix through quickly - a broken build reaches users as
+# a download they keep. Catch it on the push, not on the tag.
+#
+# Keep the FIRST python entry equal to the floor README.md and the build scripts
+# enforce (3.10). Linting only on newer Python accepts syntax the floor rejects
+# (`match`, `except*`, PEP 604 unions evaluated at runtime, ...).
+#
+# Adapted from the JezPress plugin lint.yml (php -l on the floor and on current),
+# including the file count: a pass used to print nothing, which looked identical
+# to linting zero files.
+
+on:
+  push:
+    branches: ['**']
+  pull_request:
+
+permissions:
+  contents: read
+
+jobs:
+  python:
+    name: Python ${{ matrix.python }} syntax + pyflakes
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        python: ['3.10', '3.13']
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: ${{ matrix.python }}
+
+      - name: py_compile every tracked Python file
+        run: |
+          fail=0
+          count=0
+          while IFS= read -r f; do
+            count=$((count + 1))
+            if ! python -m py_compile "$f" 2> /tmp/compile.out; then
+              echo "::error file=$f::$(tail -1 /tmp/compile.out)"
+              fail=1
+            fi
+          done < <(git ls-files '*.py')
+          echo "Compiled $count Python files on Python $(python -c 'import platform; print(platform.python_version())')."
+          if [ "$count" -eq 0 ]; then
+            echo "::error::No Python files found - the lint ran on nothing."
+            exit 1
+          fi
+          [ "$fail" -eq 0 ] || { echo "Python syntax errors found."; exit 1; }
+
+      # pyflakes (F) catches what py_compile cannot: undefined names - a call to a
+      # function that was renamed or deleted parses fine and fails only when that
+      # code path runs. E9 = syntax/IO errors as ruff sees them.
+      - name: ruff (pyflakes)
+        run: |
+          python -m pip install --disable-pip-version-check -q ruff==0.6.9
+          ruff check --no-cache --select F,E9 --output-format=github .
+
+  shell:
+    name: Shell scripts
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: bash -n + shellcheck (errors only)
+        run: |
+          fail=0
+          count=0
+          while IFS= read -r f; do
+            count=$((count + 1))
+            bash -n "$f" || { echo "::error file=$f::bash -n failed"; fail=1; }
+          done < <(git ls-files '*.sh')
+          echo "Parsed $count shell scripts."
+          [ "$count" -gt 0 ] || { echo "::error::No shell scripts found."; exit 1; }
+          git ls-files -z '*.sh' | xargs -0 shellcheck -S error -f gcc || fail=1
+          [ "$fail" -eq 0 ] || exit 1
+
+  versions:
+    # The version lives in imaginify.py, version.json, installer_windows.iss,
+    # build_installer_macos.sh and installer_macos/distribution.xml, and the
+    # newest CHANGELOG.md section must name it. A missed spot ships an installer
+    # that disagrees with the app's title bar.
+    name: Version spots agree
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: check_versions.py
+        run: python3 .claude/scripts/check_versions.py
