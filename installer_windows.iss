@@ -57,6 +57,10 @@ Source: "LICENSE.txt";        DestDir: "{app}"; Flags: ignoreversion
 ; Extracted on demand by PrepareToInstall, never installed.
 Source: "{#WebView2Setup}";   Flags: dontcopy
 
+[InstallDelete]
+; 1.x installed README.md next to the app; 2.x does not ship it.
+Type: files; Name: "{app}\README.md"
+
 [Icons]
 Name: "{group}\{#MyAppName}";       Filename: "{app}\{#MyAppExeName}"
 Name: "{group}\Uninstall {#MyAppName}"; Filename: "{uninstallexe}"

@@ -10,6 +10,10 @@ anyhow = "1"
 fast_image_resize = { version = "6", features = ["image"] }
 image = { version = "0.25", default-features = false, features = ["jpeg", "png", "webp", "tiff", "gif", "bmp"] }
 lcms2 = "6"
+# Always compile Little CMS into the app. Without this, lcms2-sys links a
+# system copy found via pkg-config (Homebrew on the macOS CI runners), and the
+# shipped app fails to launch on Macs without it.
+lcms2-sys = { version = "4", features = ["static"] }
 mozjpeg = "0.10"
 oxipng = { version = "10", default-features = false, features = ["parallel"] }
 rayon = "1"

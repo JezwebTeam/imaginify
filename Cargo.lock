@@ -1817,6 +1817,7 @@ dependencies = [
  "fast_image_resize",
  "image",
  "lcms2",
+ "lcms2-sys",
  "mozjpeg",
  "oxipng",
  "png 0.18.1",

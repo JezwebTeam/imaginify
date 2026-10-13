@@ -169,13 +169,14 @@ Only after step 8 PASSES. Posts to the JezPress releases space (Abner, 2026-10-1
 ```bash
 V=X.Y.Z
 DAY="$(TZ=Australia/Sydney date +%F)"
+TMP="$(mktemp -d)"
 WEBHOOK="$(grep -oE 'https://chat\.googleapis\.com/v1/spaces/[^ )`"]+' ~/.claude/memory/jezpress-google-chat-webhook.md | head -n1)"
 [ -n "$WEBHOOK" ] || { echo "webhook not found"; exit 1; }
-python3 .claude/scripts/check_versions.py --notes "$V" > /tmp/imaginify-notes.txt
-python3 - "$V" "$DAY" > /tmp/imaginify-chat.json <<'PY'
-import json, sys
-v, day = sys.argv[1], sys.argv[2]
-notes = open("/tmp/imaginify-notes.txt").read().strip()
+python3 .claude/scripts/check_versions.py --notes "$V" > "$TMP/notes.txt" || { echo "no CHANGELOG section for $V"; exit 1; }
+python3 - "$V" "$DAY" "$TMP/notes.txt" > "$TMP/chat.json" <<'PY'
+import html, json, sys
+v, day, notes_file = sys.argv[1], sys.argv[2], sys.argv[3]
+notes = html.escape(open(notes_file).read().strip())  # textParagraph renders HTML
 url = "https://github.com/JezwebTeam/imaginify/releases/tag/v" + v
 print(json.dumps({
     "thread": {"threadKey": "imaginify-" + day},
@@ -187,13 +188,13 @@ print(json.dumps({
         ]}}],
 }, ensure_ascii=True))
 PY
-curl -sS -o /tmp/imaginify-chat-reply.json -w '%{http_code}\n' -X POST \
+curl -sS -o "$TMP/reply.json" -w '%{http_code}\n' -X POST \
   -H 'Content-Type: application/json; charset=UTF-8' \
-  --data-binary @/tmp/imaginify-chat.json \
+  --data-binary @"$TMP/chat.json" \
   "${WEBHOOK}&messageReplyOption=REPLY_MESSAGE_FALLBACK_TO_NEW_THREAD"
 ```
 
-Expect `200`; a non-200 means read `/tmp/imaginify-chat-reply.json` (it never contains the URL) and fix the payload. Do not retry blindly - a second 200 posts a duplicate card.
+Expect `200`; a non-200 means read `$TMP/reply.json` (it never contains the URL) and fix the payload. Do not retry blindly - a second 200 posts a duplicate card.
 
 ## 11. Report to Abner
 

@@ -6,6 +6,7 @@ dist/
 
 # Windows installer extras downloaded at build time
 installer_windows/MicrosoftEdgeWebview2Setup.exe
+installer_windows/*.part
 
 # OS / editor
 .DS_Store

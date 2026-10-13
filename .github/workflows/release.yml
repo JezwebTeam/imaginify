@@ -179,6 +179,13 @@ jobs:
           echo "Binary architectures: $ARCHS"
           case " $ARCHS " in *" $ARCH "*) ;; *) echo "::error::built for '$ARCHS', expected $ARCH"; exit 1 ;; esac
           codesign --verify --verbose=1 target/release/bundle/macos/Imaginify.app
+          # Only macOS system libraries may be linked: anything else (e.g. a
+          # Homebrew dylib found on the runner) is missing on users' Macs and
+          # the app would not launch.
+          if otool -L "$BIN" | tail -n +2 | grep -vE '^[[:space:]]+(/usr/lib/|/System/Library/)'; then
+            echo "::error::the app links a non-system library (listed above)"
+            exit 1
+          fi
 
       - name: Stage assets
         run: |

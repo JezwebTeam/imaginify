@@ -42,6 +42,8 @@ if exist "%WV2%" goto :have_wv2
 echo Downloading the WebView2 bootstrapper...
 curl.exe -fsSL -o "%WV2%.part" "https://go.microsoft.com/fwlink/p/?LinkId=2124703"
 if errorlevel 1 goto :wv2_fail
+powershell -NoProfile -Command "$s = Get-AuthenticodeSignature -LiteralPath '%WV2%.part'; if ($s.Status -ne 'Valid' -or $s.SignerCertificate.Subject -notmatch 'O=Microsoft Corporation') { Write-Host ('Bootstrapper signature: ' + $s.Status + ' ' + $s.SignerCertificate.Subject); exit 1 }"
+if errorlevel 1 goto :wv2_fail
 move /y "%WV2%.part" "%WV2%" >nul
 if errorlevel 1 goto :wv2_fail
 :have_wv2
