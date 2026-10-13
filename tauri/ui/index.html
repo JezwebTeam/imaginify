@@ -1,0 +1,127 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Imaginify</title>
+  <link rel="stylesheet" href="style.css">
+</head>
+<body>
+  <header class="topbar">
+    <div class="brand">
+      <h1>Imaginify</h1>
+      <span class="dim">Resize · Crop · Compress · Convert &nbsp;|&nbsp; <span id="version"></span> by JezPress</span>
+    </div>
+    <div class="actions">
+      <button id="add-files" class="primary">Add files</button>
+      <button id="add-folder" class="primary">Add folder</button>
+      <button id="remove">Remove</button>
+      <button id="clear">Clear all</button>
+    </div>
+  </header>
+
+  <main class="body">
+    <section class="card files">
+      <div class="card-head">
+        <h2>Files</h2>
+        <span id="count" class="dim small">0 of 0 selected</span>
+      </div>
+      <div class="row gap small-buttons">
+        <button id="select-all" class="small">Select all</button>
+        <button id="select-none" class="small">Select none</button>
+      </div>
+      <ul id="file-list" class="file-list" tabindex="0" aria-label="Files"></ul>
+      <p id="empty" class="empty dim small">No files yet.<br>Drag images or folders here,<br>or click “Add files” / “Add folder”.</p>
+    </section>
+
+    <section class="card preview">
+      <div class="card-head">
+        <h2>Preview</h2>
+        <span class="dim small">drag on the image to crop</span>
+        <span class="spacer"></span>
+        <label class="small dim" for="crop-ratio">Shape</label>
+        <select id="crop-ratio" class="small">
+          <option value="0">Free</option>
+          <option value="1">1:1</option>
+          <option value="0.8">4:5</option>
+          <option value="1.3333333">4:3</option>
+          <option value="1.7777778">16:9</option>
+        </select>
+        <button id="crop-all" class="small" disabled>Use crop for all ticked</button>
+        <button id="crop-clear" class="small" disabled>Clear crop</button>
+      </div>
+      <div id="stage" class="stage">
+        <div id="frame" class="frame" hidden>
+          <img id="preview-img" alt="" draggable="false">
+          <div id="crop-box" class="crop-box" hidden></div>
+        </div>
+        <p id="stage-msg" class="dim small"></p>
+      </div>
+      <div id="crop-info" class="dim small">No crop</div>
+    </section>
+  </main>
+
+  <section class="card settings">
+    <h2>Settings</h2>
+    <div class="grid">
+      <span class="label">Preset</span>
+      <div id="presets" class="row gap wrap"></div>
+
+      <span class="label">Size</span>
+      <div class="row gap wrap">
+        <label class="field">Width <input id="width" type="number" min="0" step="1" placeholder="px"></label>
+        <label class="field">Height <input id="height" type="number" min="0" step="1" placeholder="px"></label>
+        <label class="check"><input id="keep-aspect" type="checkbox" checked> Keep aspect ratio</label>
+        <label class="check"><input id="no-enlarge" type="checkbox" checked> Don’t enlarge small images</label>
+        <span class="dim small">leave blank to keep the size</span>
+      </div>
+
+      <span class="label">Quality</span>
+      <div class="row gap wrap">
+        <input id="quality" type="range" min="1" max="100" value="88">
+        <output id="quality-out" class="strong">88</output>
+        <span class="dim small">85–92 is the best balance · 100 on WebP is lossless · PNG is always lossless</span>
+      </div>
+
+      <span class="label">Format</span>
+      <div class="row gap wrap">
+        <select id="format">
+          <option value="keep">Keep original</option>
+          <option value="jpeg">JPG</option>
+          <option value="png">PNG</option>
+          <option value="webp">WebP</option>
+        </select>
+        <label class="field">Suffix <input id="suffix" type="text" value="_optimised" spellcheck="false"></label>
+        <label class="check"><input id="keep-if-larger" type="checkbox" checked> Keep the original if re-saving makes it bigger</label>
+      </div>
+
+      <span class="label">Output folder</span>
+      <div class="row gap">
+        <input id="out-dir" type="text" class="grow" spellcheck="false">
+        <button id="browse">Browse…</button>
+      </div>
+    </div>
+  </section>
+
+  <footer class="actionbar">
+    <div class="progress-wrap">
+      <progress id="progress" value="0" max="1"></progress>
+      <div id="status" class="dim small">Ready</div>
+    </div>
+    <button id="cancel" hidden>Cancel</button>
+    <button id="process" class="go">Process selected (0)</button>
+  </footer>
+
+  <dialog id="results">
+    <h2 id="results-title">Done</h2>
+    <p id="results-summary"></p>
+    <ul id="results-list" class="results-list"></ul>
+    <div class="row gap end">
+      <button id="results-open" class="primary">Open output folder</button>
+      <button id="results-close">Close</button>
+    </div>
+  </dialog>
+
+  <script src="main.js"></script>
+</body>
+</html>

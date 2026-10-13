@@ -34,3 +34,6 @@ Thumbs.db
 # Claude Code - commit the .claude/ bundle, never the machine-local permission
 # cache (it records approved commands verbatim, so it can hold secrets).
 **/.claude/settings.local.json
+
+# Tauri app icons are committed (the patterns above would otherwise hide them).
+!tauri/src-tauri/icons/*

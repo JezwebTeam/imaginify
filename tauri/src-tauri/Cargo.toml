@@ -1,0 +1,16 @@
+[package]
+name = "imaginify"
+version = "2.0.0"
+edition = "2021"
+publish = false
+description = "Imaginify - resize, crop, compress and convert images"
+
+[build-dependencies]
+tauri-build = { version = "2", features = [] }
+
+[dependencies]
+imaginify-core = { version = "2.0.0", path = "../core" }
+serde = { version = "1", features = ["derive"] }
+tauri = { version = "2", features = [] }
+tauri-plugin-dialog = "2"
+tauri-plugin-opener = "2"
