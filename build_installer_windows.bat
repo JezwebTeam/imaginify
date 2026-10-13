@@ -1,24 +1,43 @@
 @echo off
 REM ----------------------------------------------------------------
-REM  Imaginify - Windows installer build
-REM  Compiles installer_windows.iss with Inno Setup 6.
-REM  Output: dist\Imaginify-Setup-<version>.exe
+REM  Imaginify - Windows app + installer build
+REM  1. builds the Tauri app (npm run build:exe)
+REM  2. copies it to dist\Imaginify.exe
+REM  3. downloads Microsoft's WebView2 bootstrapper if missing
+REM  4. compiles installer_windows.iss with Inno Setup 6
+REM  Output: dist\Imaginify.exe and dist\Imaginify-Setup-<version>.exe
 REM
-REM  Prerequisite: install Inno Setup 6 from https://jrsoftware.org/isdl.php
-REM  (or:  winget install --id JRSoftware.InnoSetup)
+REM  Prerequisites: Rust (rustup), Node.js, Visual Studio Build Tools
+REM  ("Desktop development with C++"), Inno Setup 6
+REM  (winget install --id JRSoftware.InnoSetup). Optional: NASM for
+REM  faster JPEG encoding (winget install --id NASM.NASM).
+REM  release.yml runs this same script with stdin from NUL.
 REM ----------------------------------------------------------------
 setlocal
 cd /d "%~dp0"
 
-echo === Imaginify Windows installer build ===
+echo === Imaginify Windows build ===
 echo.
 
-REM Make sure the app .exe exists first.
-if not exist "dist\Imaginify.exe" (
-    echo dist\Imaginify.exe not found.
-    echo Run build_windows.bat first to build the .exe, then re-run this script.
-    pause
-    exit /b 1
+if not exist "node_modules" (
+    call npm ci
+    if errorlevel 1 goto :fail
+)
+call npm run build:exe
+if errorlevel 1 goto :fail
+
+if not exist "dist" mkdir dist
+copy /y "target\release\imaginify.exe" "dist\Imaginify.exe" >nul
+if errorlevel 1 (
+    echo target\release\imaginify.exe was not built.
+    goto :fail
+)
+
+if not exist "installer_windows" mkdir installer_windows
+if not exist "installer_windows\MicrosoftEdgeWebview2Setup.exe" (
+    echo Downloading the WebView2 bootstrapper...
+    curl.exe -fsSL -o "installer_windows\MicrosoftEdgeWebview2Setup.exe" "https://go.microsoft.com/fwlink/p/?LinkId=2124703"
+    if errorlevel 1 goto :fail
 )
 
 REM Locate ISCC.exe (Inno Setup Compiler).
@@ -34,28 +53,31 @@ if not defined ISCC (
     echo Inno Setup Compiler ISCC.exe not found.
     echo Install Inno Setup 6 from https://jrsoftware.org/isdl.php
     echo   winget install --id JRSoftware.InnoSetup
-    pause
-    exit /b 1
+    goto :fail
 )
 
 echo Using compiler: %ISCC%
 echo.
 
 "%ISCC%" installer_windows.iss
-if errorlevel 1 (
-    echo.
-    echo Installer build failed. See messages above.
-    pause
-    exit /b 1
-)
+if errorlevel 1 goto :fail
 
 echo.
-echo === INSTALLER BUILD SUCCESSFUL ===
+echo === BUILD SUCCESSFUL ===
 echo.
 for %%F in (dist\Imaginify-Setup-*.exe) do echo Output: %%~fF
+echo Output: %CD%\dist\Imaginify.exe
 echo.
-echo Unsigned installers trigger SmartScreen "unrecognized app" warnings.
+echo Unsigned builds trigger SmartScreen "unrecognized app" warnings.
 echo Users need to click "More info" then "Run anyway" on first launch.
 echo.
 pause
 endlocal
+exit /b 0
+
+:fail
+echo.
+echo Build failed. See messages above.
+pause
+endlocal
+exit /b 1

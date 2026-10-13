@@ -3,7 +3,7 @@
 Adapted from the JezPress plugin audit guide. Same machinery, different failure modes: Imaginify is a desktop app that edits users' own photos and ships as unsigned installers with no auto-update, so the gates guard **user files** and **builds that launch**.
 
 Two gates:
-- **Feature audit** - after any change to the image pipeline, threading, file output, packaging (build scripts, installers, `requirements.txt`) or `.github/workflows/`. Gates the *change*.
+- **Feature audit** - after any change to the image pipeline (`core/`), the Tauri commands or capabilities (`src-tauri/`), file output, packaging (`tauri.conf.json`, the Inno Setup script and its build script, `Cargo.toml` / `package.json` dependencies) or `.github/workflows/`. Gates the *change*.
 - **Pre-release audit** - before bumping the version (`/release` step 1). Gates the *ship*. Non-negotiable.
 
 Light diff-review only (no reviewers) for purely cosmetic changes: copy, colours, README wording. **State which path you took** so the gate is visibly honoured.
@@ -23,12 +23,12 @@ Light diff-review only (no reviewers) for purely cosmetic changes: copy, colours
 
 ## Install check (third layer)
 
-The plugins' staging check has no equivalent server here; the equivalent is installing the real build on a real machine. Before every tag (`/release` step 5, after the bump is pushed): run `release.yml` by hand on `main` (it builds every platform and uploads them as workflow artifacts, without publishing), then Abner installs the DMG or `.pkg` on his Mac - and the Setup `.exe` on a Windows machine when one is to hand - opens the app past the Gatekeeper / SmartScreen prompt, drops a few photos on it and processes them. Record which platforms were checked; `windows unchecked` is an honest ledger value, a guess is not.
+The plugins' staging check has no equivalent server here; the equivalent is installing the real build on a real machine. Before every tag (`/release` step 5, after the bump is pushed): run `release.yml` by hand on `main` (it builds every platform and uploads them as workflow artifacts, without publishing), then Abner installs the DMG on his Mac - and the Setup `.exe` on a Windows machine when one is to hand - opens the app past the Gatekeeper / SmartScreen prompt, drops a few photos on it and processes them. Record which platforms were checked; `windows unchecked` is an honest ledger value, a guess is not.
 
 ## How to run a gate
 
 1. **Isolate the diff.** `git diff <prev-tag>..HEAD` plus `git status --porcelain` for untracked files.
-2. **Lint first and hand the result in.** `python3 -m py_compile` on changed `.py` files, `ruff check --select F,E9` and `shellcheck -S error` if installed, `python3 .claude/scripts/check_versions.py`. Put the results in the brief so neither reviewer repeats them.
+2. **Lint first and hand the result in.** `cargo fmt --all --check`, `cargo clippy --workspace --all-targets -- -D warnings`, `cargo test -p imaginify-core`, `node --check ui/main.js`, `shellcheck -S error` if installed, `python3 .claude/scripts/check_versions.py`. Put the results in the brief so neither reviewer repeats them.
 3. **Run layer 1.** Write a findings-free brief (what changed and why, the lint results, a sanity checklist for the surfaces touched, the NOT-to-flag list) to a scratch file, then:
    ```bash
    .claude/scripts/codex_review.sh --range <prev>..HEAD [--uncommitted] --brief <brief-file> --out <scratch>/codex-round<N>.md

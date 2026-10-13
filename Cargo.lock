@@ -1799,7 +1799,7 @@ dependencies = [
 
 [[package]]
 name = "imaginify"
-version = "2.0.0"
+version = "1.0.1"
 dependencies = [
  "imaginify-core",
  "serde",
@@ -1811,7 +1811,7 @@ dependencies = [
 
 [[package]]
 name = "imaginify-core"
-version = "2.0.0"
+version = "1.0.1"
 dependencies = [
  "anyhow",
  "fast_image_resize",

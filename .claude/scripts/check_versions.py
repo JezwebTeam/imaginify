@@ -1,14 +1,15 @@
 #!/usr/bin/env python3
 """Check that every Imaginify version spot agrees, and print release notes.
 
-The version lives in five files plus the changelog. Missing one ships an
-installer whose "Add/Remove Programs" entry or .pkg receipt disagrees with the
-app's title bar, and macOS Installer refuses to "upgrade" to a pkg whose
-version it thinks is older - so all of them must move together.
+The version lives in the Tauri config, both Cargo manifests and Cargo.lock,
+package.json / package-lock.json, the Inno Setup script and version.json, plus
+the changelog. Missing one ships an app whose title bar, Add/Remove Programs
+entry or bundle version disagree - and `cargo build --locked` in CI fails when
+Cargo.lock lags the manifests - so all of them must move together.
 
     python3 .claude/scripts/check_versions.py                 # all spots agree?
-    python3 .claude/scripts/check_versions.py --expect 1.0.2  # ...and equal 1.0.2?
-    python3 .claude/scripts/check_versions.py --notes 1.0.2   # print that CHANGELOG section
+    python3 .claude/scripts/check_versions.py --expect 2.0.0  # ...and equal 2.0.0?
+    python3 .claude/scripts/check_versions.py --notes 2.0.0   # print that CHANGELOG section
 
 Used by lint.yml (every push), release.yml (tag must match) and /release.
 Exit status: 0 = consistent, 1 = mismatch or missing entry, 2 = could not run.
@@ -26,10 +27,20 @@ SEMVER = re.compile(r"^\d+\.\d+\.\d+$")
 
 # (file, description, regex with one capture group for the version)
 SPOTS = [
-    ("imaginify.py", "__version__", r'^__version__\s*=\s*"([^"]+)"'),
+    ("core/Cargo.toml", "[package] version", r'\A\[package\]\nname = "imaginify-core"\nversion = "([^"]+)"'),
+    ("src-tauri/Cargo.toml", "[package] version", r'\A\[package\]\nname = "imaginify"\nversion = "([^"]+)"'),
+    ("Cargo.lock", "imaginify", r'^name = "imaginify"\nversion = "([^"]+)"'),
+    ("Cargo.lock", "imaginify-core", r'^name = "imaginify-core"\nversion = "([^"]+)"'),
     ("installer_windows.iss", "#define MyAppVersion", r'^#define\s+MyAppVersion\s+"([^"]+)"'),
-    ("build_installer_macos.sh", "APP_VERSION", r'^APP_VERSION="([^"]+)"'),
-    ("installer_macos/distribution.xml", "pkg-ref version", r'<pkg-ref\s+id="com\.jezweb\.imaginify"\s+version="([^"]+)"'),
+]
+
+# (file, description, path of keys into the JSON document)
+JSON_SPOTS = [
+    ("version.json", '"version"', ["version"]),
+    ("src-tauri/tauri.conf.json", '"version"', ["version"]),
+    ("package.json", '"version"', ["version"]),
+    ("package-lock.json", '"version"', ["version"]),
+    ("package-lock.json", 'packages."".version', ["packages", "", "version"]),
 ]
 
 # `## [1.0.1] - 2026-07-02`; an `## [Unreleased]` section above it is allowed.
@@ -57,11 +68,14 @@ def read_spots(root):
             found.append((rel, label, None, "expected 1 match, found %d" % len(matches)))
         else:
             found.append((rel, label, matches[0], None))
-    vj = root / "version.json"
-    try:
-        found.append(("version.json", '"version"', json.loads(vj.read_text(encoding="utf-8"))["version"], None))
-    except (OSError, ValueError, KeyError) as exc:
-        found.append(("version.json", '"version"', None, "unreadable: %s" % exc))
+    for rel, label, keys in JSON_SPOTS:
+        try:
+            value = json.loads((root / rel).read_text(encoding="utf-8"))
+            for k in keys:
+                value = value[k]
+            found.append((rel, label, value, None))
+        except (OSError, ValueError, KeyError, TypeError) as exc:
+            found.append((rel, label, None, "unreadable: %s" % exc))
     return found
 
 

@@ -1,208 +1,99 @@
 # Imaginify
 
-A modern dark-mode desktop app for Windows and macOS to resize, crop, compress and convert images - in single or batch mode.
+A modern dark-mode desktop app for Windows and macOS to resize, crop, compress and convert images - one at a time or in batches.
 
 Made by **[JezPress](https://jezpress.com/)**.
 
 ## Features
 
-- **Drag and drop** images or folders straight from Finder / Explorer onto the window.
-- Add files or whole folders (sub-folders included).
+- **Drag and drop** images or folders straight from Finder / Explorer onto the window, or use **Add files** / **Add folder** (sub-folders included).
 - Per-file **checkboxes** with **Select all / Select none** - process only the images you want.
-- **Quick resize presets**: 1920w, 1280w, 800w, Instagram 1080, Facebook 2048w, 1080p HD.
-- Custom **Width** / **Height** with optional aspect-ratio lock.
-- **Quality slider** with live value (1-100).
-- Interactive **crop** - drag on the preview to set a region.
-- **Format conversion**: keep original, JPG, PNG, or WEBP.
-- Output folder + filename suffix (default `_optimised`).
-- Live progress bar and "saved X MB" summary on completion.
+- **Quick resize presets**: 1920w, 1280w, 800w, Instagram 1080, Facebook 2048w, 1080p HD - or a custom width and height with an aspect-ratio lock.
+- **Never enlarges** small images unless you switch that off.
+- **Crop** each image on its own preview, freehand or locked to 1:1, 4:5, 4:3 or 16:9, and copy a crop to every ticked image in one click.
+- **Format conversion**: keep the original format, JPG, PNG or WebP. Quality slider for JPG and WebP (100 on WebP = lossless).
+- **Never overwrites anything.** Outputs go to your chosen folder with a suffix (default `_optimised`); if a name is taken, Imaginify saves `photo_optimised (2).jpg` instead of replacing the file - including your originals.
+- **Keeps the original** when re-saving would only make a file bigger.
+- **Correct colours**: iPhone (Display P3) and Adobe RGB photos are converted to standard sRGB, so they don't look washed out on the web. Photos are turned upright using their camera orientation.
+- **Animated GIF, WebP and PNG** keep their animation when saved as GIF or WebP.
+- **Fast batches**: several images at once, a **Cancel** button, and a report at the end listing anything that failed, with an **Open output folder** button.
+- Remembers your settings between launches.
 
-## Installation status
+Supported files: JPG, PNG, WebP, GIF, BMP, TIFF.
 
-Prebuilt downloads are not published yet. The GitHub Releases page will be used later for install-ready files:
+## Download and install
 
-https://github.com/JezwebTeam/imaginify/releases
+Get the latest version from the **[Releases page](https://github.com/JezwebTeam/imaginify/releases)**.
 
-For now, use one of these options:
+### Windows 10 / 11 (64-bit)
 
-- Run the app from source with the scripts below.
-- Build your own Windows `.exe` on Windows.
-- Build your own macOS `.app` and `.dmg` on macOS.
+- **`Imaginify-Setup-<version>.exe`** (recommended) - installer wizard with a Start Menu entry, optional Desktop icon and an uninstaller. It upgrades an existing Imaginify in place, and installs Microsoft's WebView2 runtime if the PC doesn't have it yet.
+- **`Imaginify-<version>-windows-portable.exe`** - the app on its own, no installation. Needs the WebView2 runtime, which is built into Windows 11 and up-to-date Windows 10.
 
-Built files are not committed to this repo because `dist/` is ignored. When release packages are ready, attach the `.exe` and `.dmg` files to a GitHub Release.
+The app isn't code-signed yet, so Windows SmartScreen warns on first run: click **More info**, then **Run anyway**.
 
-### Windows users
+### macOS 11 or later
 
-Current options:
+- Apple Silicon (M1 and later): **`Imaginify-<version>-macos-arm64.dmg`**
+- Intel Macs: **`Imaginify-<version>-macos-x86_64.dmg`**
 
-1. To run from source, install Python 3.10+ and double-click `run.bat`.
-2. To create a standalone app, double-click `build_windows.bat`.
-3. After the build finishes, use `dist\Imaginify.exe`.
-4. If Windows SmartScreen warns that the app is from an unknown publisher, click **More info** and then **Run anyway**.
-5. Users do not need Python installed when running the built `.exe`.
-
-### macOS users
-
-Current options:
-
-1. To run from source, install Python 3.10+ and run `bash run_macos.sh`.
-2. To create a standalone Mac package, run `bash build_macos.sh` on a Mac.
-3. After the build finishes, use `dist/Imaginify.app` or the generated DMG in `dist/`.
-4. To install from the DMG, open it and drag `Imaginify.app` into Applications.
-5. On first launch, right-click `Imaginify.app`, choose **Open**, then confirm **Open**. This is needed because the app is not notarized yet.
+Open the DMG and drag Imaginify into Applications (this replaces an older version). The app isn't notarised yet, so on first launch right-click Imaginify, choose **Open**, then **Open** again.
 
 ## How to use Imaginify
 
-1. Add images.
-   - Click **Add files** to choose individual images.
-   - Click **Add folder** to import every supported image in a folder and its sub-folders.
+1. **Add images.** Drag images or folders onto the window, or click **Add files** / **Add folder**.
+2. **Choose which images to process.** Tick or untick each file, or use **Select all** / **Select none**. Click a file name (or use the arrow keys) to preview it.
+3. **Optional: crop.** Drag across the preview. Pick a **Shape** first to lock the proportions. Each image keeps its own crop; **Use crop for all ticked** copies the current one to every ticked image (a locked shape stays that shape on every image). **Clear crop** removes it.
+4. **Optional: resize.** Click a preset or type a **Width** and/or **Height**. Leave both blank to keep the size. Keep **Keep aspect ratio** on unless you want to stretch the image.
+5. **Choose quality and format.** The **Quality** slider affects JPG and WebP; PNG is always lossless.
+6. **Choose where files go.** Pick an **Output folder** and a **Suffix**.
+7. **Click Process selected.** Watch the progress bar; when it finishes, Imaginify shows how much space was saved and lists any files it could not process.
 
-2. Choose which images to process.
-   - Tick or untick the checkbox beside each file.
-   - Use **Select all** or **Select none** for batch control.
-   - Click a filename to preview that image.
+## Working on Imaginify
 
-3. Optional: crop the selected preview image.
-   - Drag across the preview to draw a crop region.
-   - Click **Clear crop** to remove it.
-   - The same crop area is applied to the selected batch when processing.
+Imaginify 2 is a [Tauri 2](https://tauri.app/) app: the image work is Rust, and the window is plain HTML, CSS and JavaScript (no framework, no bundler).
 
-4. Optional: resize the images.
-   - Choose a preset such as **1920w (HD)**, **Instagram 1080**, or **1080p HD**.
-   - Or type a custom **Width** and/or **Height**.
-   - Leave width and height blank to keep the original image size.
-   - Keep **Keep aspect ratio** enabled unless you intentionally want to stretch the image.
+| Folder / file | What it is |
+|---|---|
+| `core/` | `imaginify-core`: the image pipeline - decode, crop, resize, encode, safe output naming. No UI code; covered by the tests in `core/tests/`. |
+| `src-tauri/` | The desktop app: Tauri commands that call `core`, window config (`tauri.conf.json`), permissions, icons. |
+| `ui/` | The window: `index.html`, `style.css`, `main.js`. |
+| `installer_windows.iss`, `build_installer_windows.bat` | Windows installer (Inno Setup) and the script that builds the app and the installer. |
+| `rust-toolchain.toml` | Pins the Rust version, locally and in CI. |
+| `version.json`, `CHANGELOG.md` | Version metadata; the newest changelog section becomes the GitHub release notes. |
+| `.github/workflows/` | `lint.yml` (checks every push) and `release.yml` (builds every platform; publishes on a `vX.Y.Z` tag). |
+| `CLAUDE.md`, `.claude/` | Claude Code project notes, review agents and the `/release` skill. |
 
-5. Choose quality and output format.
-   - Use the **Quality** slider for JPG and WEBP exports.
-   - Choose **Keep original**, **JPG**, **PNG**, or **WEBP** from the format menu.
-   - PNG compression is lossless, so the quality slider does not change PNG output.
+### Set up (once)
 
-6. Choose where files are saved.
-   - Use **Output folder** to pick the destination.
-   - Set a filename **Suffix** such as `_optimised` so the originals are not overwritten.
+1. Install Rust: `curl --proto '=https' --tlsv1.2 -sSf https://sh.rustup.rs | sh` (Windows: run `rustup-init.exe` from https://rustup.rs).
+2. Install Node.js 20 or later.
+3. macOS: `xcode-select --install`. Windows: Visual Studio Build Tools with "Desktop development with C++".
+4. In the repo folder: `npm install`.
 
-7. Process the selected images.
-   - Click **Process selected**.
-   - Watch the progress bar and status text.
-   - When complete, Imaginify shows how many files succeeded and how much space was saved.
-
-## How to use this repo
-
-Use the repo if you want to run Imaginify from source, change the code, or build release packages.
-
-### Clone the repo
+### Everyday commands
 
 ```bash
-git clone https://github.com/JezwebTeam/imaginify.git
-cd imaginify
+npm run dev        # run the app (rebuilds on change)
+npm test           # image pipeline tests
+cargo clippy --workspace --all-targets   # lint
+cargo fmt --all                          # format
 ```
 
-### Run from source
+### Build packages
 
-Requires Python 3.10+ (https://www.python.org/downloads/).
+Each platform builds on itself. Release builds come from `release.yml`, never from a local build.
 
-**Windows** - double-click `run.bat`. First run installs the required Python packages automatically.
+- **macOS:** `npm run build:mac` -> `target/release/bundle/macos/Imaginify.app` and a DMG in `target/release/bundle/dmg/`.
+- **Windows:** double-click `build_installer_windows.bat` -> `dist\Imaginify.exe` and `dist\Imaginify-Setup-<version>.exe`. Needs [Inno Setup 6](https://jrsoftware.org/isdl.php) (`winget install --id JRSoftware.InnoSetup`); [NASM](https://www.nasm.us/) is optional and makes JPEG encoding faster.
 
-**Mac / Linux** - in Terminal:
-```bash
-bash run_macos.sh
-```
+## How the compression works
 
-The launcher creates a local `.venv`, installs dependencies there, and starts the app.
-
-### Build release packages
-
-Each platform must be built on that platform - PyInstaller can't cross-compile.
-
-#### Windows .exe
-
-Double-click `build_windows.bat` on a Windows machine. Produces `dist\Imaginify.exe` (~40 MB, single file, no Python required to run).
-
-#### Windows installer wizard (.exe)
-
-After `dist\Imaginify.exe` exists, double-click `build_installer_windows.bat` to produce `dist\Imaginify-Setup-<version>.exe`. The wizard pages are: **Welcome → License → Install location → Ready → Installing → Finish** (with a "Launch Imaginify" tickbox). Requires [Inno Setup 6](https://jrsoftware.org/isdl.php) (`winget install --id JRSoftware.InnoSetup`).
-
-The installer creates a Start Menu shortcut, an optional desktop icon, an Add/Remove Programs entry, and an uninstaller. Unsigned installers trigger SmartScreen — users click **More info → Run anyway**.
-
-#### macOS .app + .dmg
-
-```bash
-bash build_macos.sh
-```
-
-Produces `dist/Imaginify.app` and an architecture-labelled DMG such as `dist/Imaginify-arm64.dmg`, `dist/Imaginify-x86_64.dmg`, or `dist/Imaginify-universal2.dmg`. The build script uses a local `.venv`, bundles CustomTkinter's macOS assets, creates a proper `.icns` icon, applies an ad-hoc signature when `codesign` is available, and packages the app into a drag-to-Applications DMG.
-
-By default, the macOS build targets the current Python architecture, usually `arm64` on Apple Silicon or `x86_64` on Intel Macs. To build another architecture, set `IMAGINIFY_TARGET_ARCH`:
-
-```bash
-IMAGINIFY_TARGET_ARCH=arm64 bash build_macos.sh
-IMAGINIFY_TARGET_ARCH=x86_64 bash build_macos.sh
-IMAGINIFY_TARGET_ARCH=universal2 bash build_macos.sh
-```
-
-Universal builds require a universal2 Python/Tk/Pillow stack. If that is not available, publish separate `arm64` and `x86_64` DMGs.
-
-Drag into `/Applications`. First launch: right-click -> Open (because the app isn't notarized yet).
-
-#### macOS installer wizard (.pkg)
-
-After `dist/Imaginify.app` exists, run:
-
-```bash
-bash build_installer_macos.sh
-```
-
-Produces `dist/Imaginify-<version>.pkg`. The wizard pages are: **Introduction → License → Destination → Installation Type → Installing → Summary**. The app installs to `/Applications/Imaginify.app`. Uses Apple's built-in `pkgbuild` + `productbuild` — no extra tools to install.
-
-Unsigned `.pkg` files are blocked by Gatekeeper on first launch. Users right-click the `.pkg` → **Open → Open** to bypass once. To remove the prompt, sign and notarize the `.pkg` with an Apple Developer ID.
-
-### Generated files
-
-Build outputs and local environments are ignored by Git:
-
-- `build/`
-- `dist/`
-- `.venv/`
-- `icon.ico`
-- `icon.png`
-- `icon.icns`
-- `icon.iconset/`
-
-Commit source changes, scripts, and documentation. Attach built `.exe` and `.dmg` files to a GitHub Release rather than committing them to the repo.
-
-## Best-quality compression notes
-
-- **JPG** - `optimize` + `progressive` + 4:4:4 chroma subsampling at quality >= 90.
-- **WebP** - `method=6` (slowest, best compression). Quality 100 = lossless.
-- **PNG** - `optimize=True`, `compress_level=9` (lossless; quality slider doesn't affect PNG).
-- Resize uses the **LANCZOS** filter (best for downscaling photos).
-- EXIF orientation auto-corrected so portraits stay upright.
-
-## Files in this repo
-
-| File | Purpose |
-|------|---------|
-| `imaginify.py` | The app |
-| `make_icon.py` | Generates `icon.ico` and `icon.png` |
-| `run.bat` | Launch from source on Windows |
-| `run_macos.sh` | Launch from source on macOS/Linux |
-| `build_windows.bat` | Build `dist/Imaginify.exe` |
-| `build_macos.sh` | Build `dist/Imaginify.app` and an architecture-labelled macOS DMG |
-| `installer_windows.iss` | Inno Setup script for the Windows installer wizard |
-| `build_installer_windows.bat` | Build `dist/Imaginify-Setup-<version>.exe` from `installer_windows.iss` |
-| `installer_macos/` | Wizard pages (welcome / conclusion HTML) and `distribution.xml` for the .pkg |
-| `build_installer_macos.sh` | Build `dist/Imaginify-<version>.pkg` using `pkgbuild` + `productbuild` |
-| `LICENSE.txt` | Terms shown on the License page of both installer wizards |
-| `push_to_github.bat` | Safely commit and push project files to `JezwebTeam/imaginify` |
-| `requirements.txt` | Python dependencies |
-| `requirements-build.txt` | Build-only Python dependencies |
-| `.gitattributes` | Keeps shell scripts LF and Windows batch files CRLF |
-| `.gitignore` | Keeps generated build outputs and local environments out of Git |
-| `version.json` | App version metadata |
-| `CHANGELOG.md` | Release notes, newest first; each section becomes the GitHub release body |
-| `.github/workflows/` | `lint.yml` (checks every push) and `release.yml` (builds every platform and publishes on a `vX.Y.Z` tag) |
-| `CLAUDE.md`, `.claude/` | Claude Code project notes, review agents and the `/release` skill |
+- **JPG** - mozjpeg: progressive, optimised Huffman tables, full-resolution colour (4:4:4) at quality 90 and above. Transparency is flattened onto white.
+- **WebP** - libwebp at its slowest, best-compressing setting; quality 100 is lossless.
+- **PNG** - oxipng: lossless, tries filter and compression combinations and reduces colour type and bit depth where that loses nothing.
+- **Resize** - Lanczos3, the sharpest common filter for downscaling photos.
+- Outputs carry no EXIF or other metadata, and are in sRGB.
 
 ---
 

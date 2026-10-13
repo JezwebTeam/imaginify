@@ -7,7 +7,7 @@ Committed, repo-safe knowledge and tooling that Claude Code loads when you open 
 | File | Purpose |
 |---|---|
 | `audit-guide.md` | The feature + pre-release gates: two review layers and the install check. |
-| `codex-review-prompt.md` | Standing instructions for the **layer-1** reviewer (OpenAI Codex, GPT-6.1 Sol), tuned to Pillow / Tk threading / PyInstaller / installer failure modes. Read by `scripts/codex_review.sh`. |
+| `codex-review-prompt.md` | Standing instructions for the **layer-1** reviewer (OpenAI Codex, GPT-6.1 Sol), tuned to the Rust pipeline / Tauri shell / installer failure modes. Read by `scripts/codex_review.sh`. |
 | `agents/jezpress-code-reviewer.md` | The **final (layer-2)** reviewer (Claude Fable): reviews blind, rules on every layer-1 finding, gives the gating verdict. |
 | `agents/jezpress-release-verifier.md` | Read-only post-publish gate (Sonnet) at `/release` step 8: runs `verify_release.py` and holds the ledger row on any FAIL. |
 | `skills/release/SKILL.md` | The `/release X.Y.Z` skill: audit loop -> bump -> push -> CI test build + hand install check -> tag -> release.yml publishes -> verifier -> LEDGER. |
@@ -23,8 +23,8 @@ Committed, repo-safe knowledge and tooling that Claude Code loads when you open 
 
 | Workflow | When | What |
 |---|---|---|
-| `lint.yml` | every push / PR | `py_compile` on Python 3.10 (floor) + 3.13, ruff pyflakes, `bash -n` + shellcheck, version spots |
-| `release.yml` | tag `vX.Y.Z` (publishes) or "Run workflow" (builds only, artifacts) | version gate -> Windows exe + Inno Setup installer, macOS arm64 + x86_64 app/DMG/pkg -> GitHub release with SHA256SUMS |
+| `lint.yml` | every push / PR | `cargo fmt --check`, `cargo clippy -D warnings`, pipeline tests, `node --check` on the window JS, helper-script syntax + shellcheck, version spots |
+| `release.yml` | tag `vX.Y.Z` (publishes) or "Run workflow" (builds only, artifacts) | version gate -> Windows exe + Inno Setup installer, macOS arm64 + x86_64 DMG -> GitHub release with SHA256SUMS |
 
 ## Hard rule: NO SECRETS in this folder
 

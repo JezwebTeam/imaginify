@@ -6,7 +6,7 @@ release.yml has published. Never writes: no edits, no gh writes, no pushes.
 A green workflow is not proof - a release can publish with an asset missing, a
 stale installer version or empty notes - so everything is read back.
 
-    python3 .claude/scripts/verify_release.py --version 1.0.2 --prev 1.0.1
+    python3 .claude/scripts/verify_release.py --version 2.0.0 --prev 1.0.1
 
 Exit status: 0 = no FAIL, 1 = at least one FAIL, 2 = could not run.
 Python 3.9 compatible (the macOS system python).
@@ -24,7 +24,7 @@ import tempfile
 from pathlib import Path
 
 ROOT = Path(__file__).resolve().parents[2]
-MIN_SIZE = 8 * 1024 * 1024  # every PyInstaller build is ~20-40 MB; anything under 8 MB is broken
+MIN_SIZE = 1024 * 1024  # Tauri builds are ~3-15 MB; anything under 1 MB is broken
 
 
 def expected_assets(v):
@@ -32,9 +32,7 @@ def expected_assets(v):
         "Imaginify-Setup-%s.exe" % v,
         "Imaginify-%s-windows-portable.exe" % v,
         "Imaginify-%s-macos-arm64.dmg" % v,
-        "Imaginify-%s-macos-arm64.pkg" % v,
         "Imaginify-%s-macos-x86_64.dmg" % v,
-        "Imaginify-%s-macos-x86_64.pkg" % v,
     ]
 
 
@@ -116,7 +114,7 @@ def main():
                 tf.extractall(tmp)
             spots = cv.read_spots(Path(tmp))
             bad = ["%s %s=%s" % (f, lbl, val or err) for f, lbl, val, err in spots if val != v]
-            r.ok(not bad, "version spots at tag", "all 5 = %s" % v, "; ".join(bad))
+            r.ok(not bad, "version spots at tag", "all %d = %s" % (len(spots), v), "; ".join(bad))
             secs = cv.changelog_sections(Path(tmp)) or []
             r.ok(bool(secs) and secs[0][0] == v and "\n".join(secs[0][2]).strip(), "CHANGELOG at tag",
                  "newest section %s" % v, "newest section is %s" % (secs[0][0] if secs else "missing"))

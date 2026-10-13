@@ -1,9 +1,9 @@
 # ---------------------------------------------------------------------------
-# Release workflow for Imaginify (Python + CustomTkinter, packaged by PyInstaller).
+# Release workflow for Imaginify (Tauri 2: Rust back end, HTML/CSS/JS window).
 #
 # Adapted from the canonical JezPress plugin release.yml: same tag trigger, same
 # version gate and the same security invariant, but the artefacts are desktop
-# builds made on each OS (PyInstaller cannot cross-compile) instead of a ZIP.
+# builds made on each OS (each platform builds natively) instead of a ZIP.
 #
 # SECURITY INVARIANT - do not undo:
 #   Never interpolate ${{ ... }} into a `run:` block. GitHub substitutes those
@@ -21,18 +21,19 @@ name: Release
 #     GitHub release with every installer attached.
 #   - "Run workflow" (workflow_dispatch) on a branch -> verify + build only. The
 #     builds land as workflow artifacts for a hand install check before tagging
-#     (/release step 1d). Nothing is published.
+#     (/release step 5). Nothing is published.
 #
 # Built per release (assets, X.Y.Z = version):
-#   Imaginify-Setup-X.Y.Z.exe               Windows installer wizard (Inno Setup)
-#   Imaginify-X.Y.Z-windows-portable.exe    Windows single-file app
-#   Imaginify-X.Y.Z-macos-arm64.dmg / .pkg  Apple Silicon
-#   Imaginify-X.Y.Z-macos-x86_64.dmg / .pkg Intel Macs
+#   Imaginify-Setup-X.Y.Z.exe               Windows installer wizard (Inno Setup;
+#                                           same AppId as 1.x, so it upgrades in place)
+#   Imaginify-X.Y.Z-windows-portable.exe    Windows app, no installation
+#   Imaginify-X.Y.Z-macos-arm64.dmg         Apple Silicon
+#   Imaginify-X.Y.Z-macos-x86_64.dmg        Intel Macs
 #   SHA256SUMS.txt
 #
-# Nothing is signed or notarised: Windows SmartScreen and macOS Gatekeeper warn
-# on first launch (the release notes say how to get past it). No repo secrets
-# are needed.
+# Nothing is signed or notarised (the macOS app is ad-hoc signed so Apple
+# Silicon will run it): Windows SmartScreen and macOS Gatekeeper warn on first
+# launch, and the release notes say how to get past it. No repo secrets needed.
 
 on:
   push:
@@ -71,8 +72,9 @@ jobs:
             echo "::error::Version '$VERSION' is not X.Y.Z"
             exit 1
           fi
-          # Every version spot (app, version.json, both installers) and the newest
-          # CHANGELOG.md section must equal the tag.
+          # Every version spot (Tauri config, Cargo manifests + lock, npm files,
+          # Inno Setup script, version.json) and the newest CHANGELOG.md section
+          # must equal the tag.
           python3 .claude/scripts/check_versions.py --expect "$VERSION"
           echo "version=$VERSION" >> "$GITHUB_OUTPUT"
           echo "Building v$VERSION ($REF_TYPE $REF_NAME)"
@@ -86,25 +88,35 @@ jobs:
     steps:
       - uses: actions/checkout@v4
 
-      - uses: actions/setup-python@v5
+      - uses: actions/setup-node@v4
         with:
-          python-version: '3.12'
+          node-version: '22'
+          cache: npm
 
-      # The .bat files end in `pause`; stdin from NUL makes every pause return at once.
-      - name: Build portable exe (build_windows.bat)
-        shell: cmd
-        run: call build_windows.bat < NUL
+      # rust-toolchain.toml pins the compiler; rustup installs it on first use.
+      - name: Rust toolchain
+        shell: bash
+        run: rustup show active-toolchain || rustup toolchain install
 
-      - name: Ensure Inno Setup 6
+      - uses: Swatinem/rust-cache@v2
+
+      # NASM gives mozjpeg its SIMD code on x86_64 (without it, JPEG encoding still works, slower).
+      - name: Install NASM and Inno Setup 6
         shell: pwsh
         run: |
+          choco install nasm --no-progress -y
+          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+          Add-Content -Path $env:GITHUB_PATH -Value "$env:ProgramFiles\NASM"
           $paths = @("${env:ProgramFiles(x86)}\Inno Setup 6\ISCC.exe", "$env:ProgramFiles\Inno Setup 6\ISCC.exe")
           if (-not ($paths | Where-Object { Test-Path $_ })) {
             choco install innosetup --no-progress -y
             if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
           }
 
-      - name: Build installer (build_installer_windows.bat)
+      # Builds the app, copies it to dist\Imaginify.exe, fetches the WebView2
+      # bootstrapper and compiles the installer. The .bat ends in `pause`;
+      # stdin from NUL makes it return at once.
+      - name: Build app + installer (build_installer_windows.bat)
         shell: cmd
         run: call build_installer_windows.bat < NUL
 
@@ -142,29 +154,38 @@ jobs:
     steps:
       - uses: actions/checkout@v4
 
-      - uses: actions/setup-python@v5
+      - uses: actions/setup-node@v4
         with:
-          python-version: '3.12'
+          node-version: '22'
+          cache: npm
 
-      # build_macos.sh creates .venv from python3 on PATH, checks Tk, builds the
-      # .app (ad-hoc signed) and the DMG; it targets the runner's own arch.
-      - name: Build app + DMG (build_macos.sh)
+      - name: Rust toolchain
+        run: rustup show active-toolchain || rustup toolchain install
+
+      - uses: Swatinem/rust-cache@v2
+
+      - name: Install NASM (Intel only)
+        if: matrix.arch == 'x86_64'
+        run: brew install nasm
+
+      # Native build for the runner's own architecture: Imaginify.app (ad-hoc
+      # signed, see tauri.conf.json) and a DMG.
+      - name: Build app + DMG
         run: |
-          IMAGINIFY_TARGET_ARCH="$ARCH" bash build_macos.sh
-          ARCHS="$(lipo -archs dist/Imaginify.app/Contents/MacOS/Imaginify)"
+          npm ci
+          npm run build:mac
+          BIN=target/release/bundle/macos/Imaginify.app/Contents/MacOS/imaginify
+          ARCHS="$(lipo -archs "$BIN")"
           echo "Binary architectures: $ARCHS"
           case " $ARCHS " in *" $ARCH "*) ;; *) echo "::error::built for '$ARCHS', expected $ARCH"; exit 1 ;; esac
-
-      - name: Build installer (build_installer_macos.sh)
-        run: bash build_installer_macos.sh
+          codesign --verify --verbose=1 target/release/bundle/macos/Imaginify.app
 
       - name: Stage assets
         run: |
           mkdir -p out
-          test -f "dist/Imaginify-$ARCH.dmg" || { echo "::error::dist/Imaginify-$ARCH.dmg was not built"; exit 1; }
-          test -f "dist/Imaginify-$VERSION.pkg" || { echo "::error::dist/Imaginify-$VERSION.pkg was not built (build_installer_macos.sh version?)"; exit 1; }
-          cp "dist/Imaginify-$ARCH.dmg" "out/Imaginify-$VERSION-macos-$ARCH.dmg"
-          cp "dist/Imaginify-$VERSION.pkg" "out/Imaginify-$VERSION-macos-$ARCH.pkg"
+          set -- target/release/bundle/dmg/*.dmg
+          [ "$#" -eq 1 ] && [ -f "$1" ] || { echo "::error::expected exactly one DMG, found: $*"; exit 1; }
+          cp "$1" "out/Imaginify-$VERSION-macos-$ARCH.dmg"
           ls -l out
 
       - uses: actions/upload-artifact@v4
@@ -198,8 +219,8 @@ jobs:
           fail=0
           for f in "Imaginify-Setup-$VERSION.exe" \
                    "Imaginify-$VERSION-windows-portable.exe" \
-                   "Imaginify-$VERSION-macos-arm64.dmg" "Imaginify-$VERSION-macos-arm64.pkg" \
-                   "Imaginify-$VERSION-macos-x86_64.dmg" "Imaginify-$VERSION-macos-x86_64.pkg"; do
+                   "Imaginify-$VERSION-macos-arm64.dmg" \
+                   "Imaginify-$VERSION-macos-x86_64.dmg"; do
             if [ ! -s "$f" ]; then echo "::error::missing asset $f"; fail=1; fi
           done
           [ "$fail" = 0 ] || { ls -l; exit 1; }
@@ -215,19 +236,19 @@ jobs:
             echo
             echo "## Downloads"
             echo
-            echo "### Windows"
+            echo "### Windows 10 / 11 (64-bit)"
             echo
-            echo "- **Imaginify-Setup-$VERSION.exe** - installer wizard (recommended): Start Menu entry, optional Desktop icon, uninstaller."
-            echo "- **Imaginify-$VERSION-windows-portable.exe** - single-file app, no installation."
+            echo "- **Imaginify-Setup-$VERSION.exe** - installer wizard (recommended): Start Menu entry, optional Desktop icon, uninstaller. Upgrades an existing Imaginify install in place, and installs Microsoft's WebView2 runtime if the PC does not have it yet."
+            echo "- **Imaginify-$VERSION-windows-portable.exe** - the app on its own, no installation. Needs the WebView2 runtime (built into Windows 11 and up-to-date Windows 10)."
             echo
             echo "Both are unsigned. Windows SmartScreen warns on first run - click **More info -> Run anyway**."
             echo
-            echo "### macOS"
+            echo "### macOS 11 or later"
             echo
-            echo "- Apple Silicon (M1 and later): **Imaginify-$VERSION-macos-arm64.dmg** (drag to Applications) or **.pkg** (installer wizard)."
-            echo "- Intel Macs: **Imaginify-$VERSION-macos-x86_64.dmg** or **.pkg**."
+            echo "- Apple Silicon (M1 and later): **Imaginify-$VERSION-macos-arm64.dmg**"
+            echo "- Intel Macs: **Imaginify-$VERSION-macos-x86_64.dmg**"
             echo
-            echo "Not notarised yet. First launch: right-click the app (or the .pkg) -> **Open** -> **Open**."
+            echo "Open the DMG and drag Imaginify to Applications (this replaces an older version). Not notarised yet: on first launch, right-click the app -> **Open** -> **Open**."
             echo
             echo "Checksums: \`SHA256SUMS.txt\`."
           } > "$RUNNER_TEMP/notes.md"

@@ -1,19 +1,14 @@
 name: Lint
 
-# Every push and pull request: Python syntax + pyflakes, shell scripts and
-# version spots.
+# Every push and pull request: Rust format + clippy + the image-pipeline tests,
+# the window's JavaScript, the helper scripts, and the version spots.
 #
 # Why: release.yml builds whatever is tagged, and an unsigned desktop app has no
 # update channel to push a fix through quickly - a broken build reaches users as
 # a download they keep. Catch it on the push, not on the tag.
 #
-# Keep the FIRST python entry equal to the floor README.md and the build scripts
-# enforce (3.10). Linting only on newer Python accepts syntax the floor rejects
-# (`match`, `except*`, PEP 604 unions evaluated at runtime, ...).
-#
-# Adapted from the JezPress plugin lint.yml (php -l on the floor and on current),
-# including the file count: a pass used to print nothing, which looked identical
-# to linting zero files.
+# Adapted from the JezPress plugin lint.yml, including the file counts: a pass
+# used to print nothing, which looked identical to linting zero files.
 
 on:
   push:
@@ -24,51 +19,67 @@ permissions:
   contents: read
 
 jobs:
-  python:
-    name: Python ${{ matrix.python }} syntax + pyflakes
+  rust:
+    name: Rust fmt + clippy + tests
     runs-on: ubuntu-latest
-    strategy:
-      fail-fast: false
-      matrix:
-        python: ['3.10', '3.13']
     steps:
       - uses: actions/checkout@v4
 
-      - uses: actions/setup-python@v5
-        with:
-          python-version: ${{ matrix.python }}
-
-      - name: py_compile every tracked Python file
+      # Tauri's Linux build dependencies (clippy compiles the app crate too),
+      # plus NASM for mozjpeg's SIMD code.
+      - name: System packages
         run: |
-          fail=0
+          sudo apt-get update -q
+          sudo apt-get install -y -q --no-install-recommends \
+            libwebkit2gtk-4.1-dev libxdo-dev libssl-dev libayatana-appindicator3-dev librsvg2-dev nasm
+
+      # rust-toolchain.toml pins the compiler, clippy and rustfmt.
+      - name: Rust toolchain
+        run: rustup show active-toolchain || rustup toolchain install
+
+      - uses: Swatinem/rust-cache@v2
+
+      - name: cargo fmt --check
+        run: cargo fmt --all --check
+
+      - name: cargo clippy (warnings are errors)
+        run: cargo clippy --workspace --all-targets --locked -- -D warnings
+
+      - name: Image pipeline tests
+        run: cargo test -p imaginify-core --locked
+
+  ui:
+    name: Window JavaScript
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - name: node --check
+        run: |
           count=0
           while IFS= read -r f; do
             count=$((count + 1))
-            if ! python -m py_compile "$f" 2> /tmp/compile.out; then
-              echo "::error file=$f::$(tail -1 /tmp/compile.out)"
-              fail=1
-            fi
-          done < <(git ls-files '*.py')
-          echo "Compiled $count Python files on Python $(python -c 'import platform; print(platform.python_version())')."
-          if [ "$count" -eq 0 ]; then
-            echo "::error::No Python files found - the lint ran on nothing."
-            exit 1
-          fi
-          [ "$fail" -eq 0 ] || { echo "Python syntax errors found."; exit 1; }
+            node --check "$f" || { echo "::error file=$f::syntax error"; exit 1; }
+          done < <(git ls-files 'ui/*.js')
+          echo "Checked $count JavaScript files."
+          [ "$count" -gt 0 ] || { echo "::error::No JavaScript files found."; exit 1; }
 
-      # pyflakes (F) catches what py_compile cannot: undefined names - a call to a
-      # function that was renamed or deleted parses fine and fails only when that
-      # code path runs. E9 = syntax/IO errors as ruff sees them.
-      - name: ruff (pyflakes)
-        run: |
-          python -m pip install --disable-pip-version-check -q ruff==0.6.9
-          ruff check --no-cache --select F,E9 --output-format=github .
-
-  shell:
-    name: Shell scripts
+  scripts:
+    name: Helper scripts
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
+
+      - name: Python syntax (.claude/scripts)
+        run: |
+          count=0
+          while IFS= read -r f; do
+            count=$((count + 1))
+            python3 -m py_compile "$f" || { echo "::error file=$f::py_compile failed"; exit 1; }
+          done < <(git ls-files '*.py')
+          echo "Compiled $count Python files."
 
       - name: bash -n + shellcheck (errors only)
         run: |
@@ -84,10 +95,10 @@ jobs:
           [ "$fail" -eq 0 ] || exit 1
 
   versions:
-    # The version lives in imaginify.py, version.json, installer_windows.iss,
-    # build_installer_macos.sh and installer_macos/distribution.xml, and the
-    # newest CHANGELOG.md section must name it. A missed spot ships an installer
-    # that disagrees with the app's title bar.
+    # The version lives in the Tauri config, both Cargo manifests and Cargo.lock,
+    # package.json / package-lock.json, installer_windows.iss and version.json,
+    # and the newest CHANGELOG.md section must name it. A missed spot ships an
+    # installer that disagrees with the app's title bar.
     name: Version spots agree
     runs-on: ubuntu-latest
     steps:

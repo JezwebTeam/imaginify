@@ -6,8 +6,16 @@
 *.txt text eol=lf
 *.json text eol=lf
 *.yml text eol=lf
+*.rs text eol=lf
+*.toml text eol=lf
+*.lock text eol=lf
+*.js text eol=lf
+*.html text eol=lf
+*.css text eol=lf
+*.iss text eol=lf
 *.bat text eol=crlf
 .gitattributes text eol=lf
 
 *.ico binary
 *.png binary
+*.icns binary
