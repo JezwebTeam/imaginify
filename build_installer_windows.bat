@@ -33,12 +33,18 @@ if errorlevel 1 (
     goto :fail
 )
 
+REM WebView2 bootstrapper: download to a .part file and keep it only when
+REM the download completed, so a broken file is never reused by a later build.
 if not exist "installer_windows" mkdir installer_windows
-if not exist "installer_windows\MicrosoftEdgeWebview2Setup.exe" (
-    echo Downloading the WebView2 bootstrapper...
-    curl.exe -fsSL -o "installer_windows\MicrosoftEdgeWebview2Setup.exe" "https://go.microsoft.com/fwlink/p/?LinkId=2124703"
-    if errorlevel 1 goto :fail
-)
+set "WV2=installer_windows\MicrosoftEdgeWebview2Setup.exe"
+if exist "%WV2%" for %%A in ("%WV2%") do if %%~zA LSS 100000 del /q "%WV2%"
+if exist "%WV2%" goto :have_wv2
+echo Downloading the WebView2 bootstrapper...
+curl.exe -fsSL -o "%WV2%.part" "https://go.microsoft.com/fwlink/p/?LinkId=2124703"
+if errorlevel 1 goto :wv2_fail
+move /y "%WV2%.part" "%WV2%" >nul
+if errorlevel 1 goto :wv2_fail
+:have_wv2
 
 REM Locate ISCC.exe (Inno Setup Compiler).
 REM NOTE: do NOT use  if "%ISCC%"==""  inside a parenthesized block --
@@ -74,6 +80,10 @@ echo.
 pause
 endlocal
 exit /b 0
+
+:wv2_fail
+if exist "%WV2%.part" del /q "%WV2%.part"
+echo Could not download the WebView2 bootstrapper.
 
 :fail
 echo.

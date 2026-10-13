@@ -54,7 +54,8 @@ Name: "desktopicon"; Description: "{cm:CreateDesktopIcon}"; GroupDescription: "{
 [Files]
 Source: "dist\Imaginify.exe"; DestDir: "{app}"; Flags: ignoreversion
 Source: "LICENSE.txt";        DestDir: "{app}"; Flags: ignoreversion
-Source: "{#WebView2Setup}";   DestDir: "{tmp}"; Flags: deleteafterinstall; Check: NeedsWebView2
+; Extracted on demand by PrepareToInstall, never installed.
+Source: "{#WebView2Setup}";   Flags: dontcopy
 
 [Icons]
 Name: "{group}\{#MyAppName}";       Filename: "{app}\{#MyAppExeName}"
@@ -62,9 +63,6 @@ Name: "{group}\Uninstall {#MyAppName}"; Filename: "{uninstallexe}"
 Name: "{autodesktop}\{#MyAppName}"; Filename: "{app}\{#MyAppExeName}"; Tasks: desktopicon
 
 [Run]
-; Imaginify draws its window with WebView2. Windows 11 ships it; older
-; Windows 10 machines may not, so install it first when it is missing.
-Filename: "{tmp}\MicrosoftEdgeWebview2Setup.exe"; Parameters: "/silent /install"; StatusMsg: "Installing Microsoft Edge WebView2 Runtime..."; Check: NeedsWebView2; Flags: waituntilterminated
 Filename: "{app}\{#MyAppExeName}"; Description: "{cm:LaunchProgram,{#MyAppName}}"; Flags: nowait postinstall skipifsilent
 
 [Code]
@@ -79,4 +77,27 @@ end;
 function NeedsWebView2: Boolean;
 begin
   Result := not (HasWebView2(HKLM32) or HasWebView2(HKLM64) or HasWebView2(HKCU));
+end;
+
+// Imaginify draws its window with WebView2. Windows 11 ships it; older
+// Windows 10 machines may not. Install it BEFORE any app file is replaced,
+// and stop Setup if it is still missing afterwards, so an upgrade never
+// swaps a working 1.x for an app that cannot open.
+function PrepareToInstall(var NeedsRestart: Boolean): String;
+var
+  ResultCode: Integer;
+begin
+  Result := '';
+  if not NeedsWebView2 then
+    exit;
+  WizardForm.PreparingLabel.Caption := 'Installing the Microsoft Edge WebView2 Runtime...';
+  ExtractTemporaryFile('MicrosoftEdgeWebview2Setup.exe');
+  if not Exec(ExpandConstant('{tmp}\MicrosoftEdgeWebview2Setup.exe'), '/silent /install', '',
+              SW_HIDE, ewWaitUntilTerminated, ResultCode) then
+    ResultCode := -1;
+  if NeedsWebView2 then
+    Result := 'Imaginify needs the Microsoft Edge WebView2 Runtime, and it could not be installed '
+      + '(code ' + IntToStr(ResultCode) + '). Nothing has been changed. Check the internet '
+      + 'connection and run Setup again, or install the runtime from '
+      + 'https://go.microsoft.com/fwlink/p/?LinkId=2124703 first.';
 end;
