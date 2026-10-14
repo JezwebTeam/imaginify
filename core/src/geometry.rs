@@ -6,6 +6,20 @@ use image::{DynamicImage, GenericImageView};
 
 use crate::{Crop, Settings};
 
+/// Budget for the resizer's filter tables (both axes).
+const MAX_RESIZE_COEFFICIENT_BYTES: u64 = 1 << 30;
+
+/// Memory fast_image_resize allocates for one axis's Lanczos3 coefficients:
+/// a window of 2*ceil(3*scale)+1 weights per output pixel, where scale is the
+/// downscale factor - so a very long axis squeezed into a preview needs a
+/// huge table. Counted at 16 bytes per weight (f64 plus the normalised copy)
+/// plus 16 bytes of bounds per output pixel.
+fn lanczos_coefficient_bytes(src: u32, dst: u32) -> u64 {
+    let scale = (f64::from(src) / f64::from(dst.max(1))).max(1.0);
+    let window = (3.0 * scale).ceil() as u64 * 2 + 1;
+    window.saturating_mul(u64::from(dst)).saturating_mul(16) + u64::from(dst) * 16
+}
+
 /// Largest output, in pixels (about 1 GB as RGBA), so an oversized target
 /// fails that file with a message instead of exhausting memory.
 pub const MAX_OUTPUT_PIXELS: u64 = 268_000_000;
@@ -70,6 +84,21 @@ pub fn target_size(w: u32, h: u32, s: &Settings) -> Option<(u32, u32)> {
 }
 
 pub fn resize(img: &DynamicImage, w: u32, h: u32) -> Result<DynamicImage> {
+    // The convolution runs in two passes through an intermediate image of
+    // (source width x target height) or (target width x source height). A
+    // long thin image turned on its side makes that intermediate enormous
+    // even when source and target are small, so budget it before allocating.
+    let (sw, sh) = img.dimensions();
+    let working = (u64::from(sw) * u64::from(h)).max(u64::from(w) * u64::from(sh));
+    if u64::from(w) * u64::from(h) > MAX_OUTPUT_PIXELS || working > MAX_OUTPUT_PIXELS {
+        bail!(
+            "resizing {sw} x {sh} to {w} x {h} needs too much memory (limit {} megapixels)",
+            MAX_OUTPUT_PIXELS / 1_000_000
+        );
+    }
+    if lanczos_coefficient_bytes(sw, w) + lanczos_coefficient_bytes(sh, h) > MAX_RESIZE_COEFFICIENT_BYTES {
+        bail!("resizing {sw} x {sh} to {w} x {h} needs too much memory (image too long and thin)");
+    }
     let mut dst = DynamicImage::new(w, h, img.color());
     let opts = ResizeOptions::new().resize_alg(ResizeAlg::Convolution(FilterType::Lanczos3));
     Resizer::new().resize(img, &mut dst, &opts)?;

@@ -9,7 +9,7 @@
 ; ============================================================
 
 #define MyAppName       "Imaginify"
-#define MyAppVersion    "1.0.1"
+#define MyAppVersion    "1.1.0"
 #define MyAppPublisher  "JezPress"
 #define MyAppURL        "https://jezpress.com/"
 #define MyAppExeName    "Imaginify.exe"
@@ -20,7 +20,7 @@
 [Setup]
 ; AppId is the stable identity used for upgrades and uninstall lookups.
 ; Do NOT change it between versions or upgrades won't replace old installs.
-; 2.x keeps 1.x's AppId and exe name, so it upgrades 1.x in place.
+; 1.1+ (Tauri) keeps 1.0.x's AppId and exe name, so it upgrades 1.0.x in place.
 AppId={{1A9A715E-1503-4D87-B8E0-3F36F4E7D8E0}
 AppName={#MyAppName}
 AppVersion={#MyAppVersion}
@@ -58,7 +58,7 @@ Source: "LICENSE.txt";        DestDir: "{app}"; Flags: ignoreversion
 Source: "{#WebView2Setup}";   Flags: dontcopy
 
 [InstallDelete]
-; 1.x installed README.md next to the app; 2.x does not ship it.
+; 1.0.x installed README.md next to the app; 1.1+ does not ship it.
 Type: files; Name: "{app}\README.md"
 
 [Icons]

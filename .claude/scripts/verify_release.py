@@ -6,7 +6,7 @@ release.yml has published. Never writes: no edits, no gh writes, no pushes.
 A green workflow is not proof - a release can publish with an asset missing, a
 stale installer version or empty notes - so everything is read back.
 
-    python3 .claude/scripts/verify_release.py --version 2.0.0 --prev 1.0.1
+    python3 .claude/scripts/verify_release.py --version 1.1.0 --prev 1.0.1
 
 Exit status: 0 = no FAIL, 1 = at least one FAIL, 2 = could not run.
 Python 3.9 compatible (the macOS system python).

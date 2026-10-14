@@ -3,19 +3,18 @@
 All notable changes to Imaginify. Newest first. Each `## [X.Y.Z]` section is the
 GitHub release body for that tag, so keep it short, user-facing and ASCII.
 
-## [Unreleased]
-
-Draft for 2.0.0 - `/release` turns this into the release section.
+## [1.1.0] - 2026-10-14
 
 - Rebuilt from the ground up (Rust + Tauri): a much smaller download, and batches process several images at once.
-- Never overwrites anything: if a file name is taken (including your original), the output is saved as "name (2)" instead.
-- Crop is now per image, with optional 1:1, 4:5, 4:3 and 16:9 shapes, and "Use crop for all ticked" to copy one crop to a batch.
+- Never overwrites anything: if a file name is taken (including your original), the output is saved as "name (2)" instead, and quitting mid-batch never leaves a half-written image.
+- Crop is now per image, with optional 1:1, 4:5, 4:3 and 16:9 shapes, and "Use crop for all ticked" to copy one crop to a batch (a locked shape stays that shape on every image).
 - iPhone and other wide-colour photos keep their colours (converted to sRGB), and photos are turned upright using their camera orientation.
 - Animated GIF, WebP and PNG files keep their animation when saved as GIF or WebP.
 - Smaller files: JPEG via mozjpeg, PNG via oxipng; small images are no longer enlarged, and a file is kept as-is when re-saving would make it bigger.
 - Cancel button, a report listing any files that failed, an "Open output folder" button, and settings remembered between launches.
-- Fixed: TIFF files with "Keep original", CMYK and 16-bit images, and crops drifting when the window was resized.
-- macOS downloads are now DMG only; the Windows installer upgrades 1.x in place and installs the WebView2 runtime if needed.
+- Fixed: TIFF files with "Keep original", CMYK, 16-bit and premultiplied-alpha TIFF images, and crops drifting when the window was resized.
+- Safer with damaged or oversized files: most are now reported as an error for that file while the rest of the batch carries on. Files over 512 MB are not opened.
+- macOS downloads are now DMG only; the Windows installer upgrades 1.0.x in place and installs the WebView2 runtime if needed.
 
 ## [1.0.1] - 2026-07-02
 

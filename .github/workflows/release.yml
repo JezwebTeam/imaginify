@@ -25,7 +25,7 @@ name: Release
 #
 # Built per release (assets, X.Y.Z = version):
 #   Imaginify-Setup-X.Y.Z.exe               Windows installer wizard (Inno Setup;
-#                                           same AppId as 1.x, so it upgrades in place)
+#                                           same AppId as 1.0.x, so it upgrades in place)
 #   Imaginify-X.Y.Z-windows-portable.exe    Windows app, no installation
 #   Imaginify-X.Y.Z-macos-arm64.dmg         Apple Silicon
 #   Imaginify-X.Y.Z-macos-x86_64.dmg        Intel Macs

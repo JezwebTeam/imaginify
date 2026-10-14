@@ -18,7 +18,9 @@ use image::{DynamicImage, Frame, GenericImageView};
 use rayon::prelude::*;
 use serde::{Deserialize, Serialize};
 
-pub use decode::{decode, decode_first_frame, first_frame, Animation, Codec, Decoded, Pixels, MAX_ANIMATION_BYTES};
+pub use decode::{
+    decode, decode_first_frame, first_frame, Animation, Codec, Decoded, Pixels, MAX_ANIMATION_BYTES, MAX_INPUT_BYTES,
+};
 pub use geometry::{crop_rect, target_size};
 pub use output::{sanitize_suffix, write_unique};
 
@@ -219,7 +221,7 @@ pub fn process_one(job: &Job, s: &Settings, out_dir: &Path) -> Result<Outcome> {
         OutputFormat::Webp => Codec::Webp,
     };
     let quality = s.quality.clamp(1, 100);
-    let mut note = None;
+    let mut note = decoded.note.map(String::from);
     let mut changed = false;
 
     let data = match decoded.pixels {

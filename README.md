@@ -51,7 +51,7 @@ Open the DMG and drag Imaginify into Applications (this replaces an older versio
 
 ## Working on Imaginify
 
-Imaginify 2 is a [Tauri 2](https://tauri.app/) app: the image work is Rust, and the window is plain HTML, CSS and JavaScript (no framework, no bundler).
+Since 1.1, Imaginify is a [Tauri 2](https://tauri.app/) app: the image work is Rust, and the window is plain HTML, CSS and JavaScript (no framework, no bundler).
 
 | Folder / file | What it is |
 |---|---|

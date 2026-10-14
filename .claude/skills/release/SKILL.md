@@ -48,7 +48,7 @@ Audit first, bump after. Both layers automatic - **do not ask**. Details: `.clau
 - a sanity checklist for the surfaces touched (file output, decode/encode modes and formats, size budgets, Tauri commands and capabilities, the window JS, installers, workflows),
 - the NOT-to-flag list from the agent file.
 
-**Previous tag:** `v1.0.1` was the last Python release; 2.0.0 is the first Tauri one, so its diff is the whole rewrite.
+**Previous tag:** `v1.0.1` was the last Python release; 1.1.0 is the first Tauri one, so its diff is the whole rewrite.
 
 **1a. Layer 1 - Codex.**
 

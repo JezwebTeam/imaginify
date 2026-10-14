@@ -8,8 +8,8 @@ entry or bundle version disagree - and `cargo build --locked` in CI fails when
 Cargo.lock lags the manifests - so all of them must move together.
 
     python3 .claude/scripts/check_versions.py                 # all spots agree?
-    python3 .claude/scripts/check_versions.py --expect 2.0.0  # ...and equal 2.0.0?
-    python3 .claude/scripts/check_versions.py --notes 2.0.0   # print that CHANGELOG section
+    python3 .claude/scripts/check_versions.py --expect 1.1.0  # ...and equal 1.1.0?
+    python3 .claude/scripts/check_versions.py --notes 1.1.0   # print that CHANGELOG section
 
 Used by lint.yml (every push), release.yml (tag must match) and /release.
 Exit status: 0 = consistent, 1 = mismatch or missing entry, 2 = could not run.

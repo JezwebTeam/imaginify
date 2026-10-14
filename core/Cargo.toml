@@ -1,6 +1,6 @@
 [package]
 name = "imaginify-core"
-version = "1.0.1"
+version = "1.1.0"
 edition = "2021"
 publish = false
 description = "Imaginify image pipeline: decode, crop, resize, encode, safe output naming"
@@ -19,6 +19,7 @@ oxipng = { version = "10", default-features = false, features = ["parallel"] }
 rayon = "1"
 serde = { version = "1", features = ["derive"] }
 tempfile = "3"
+tiff = { version = "0.11", default-features = false }
 walkdir = "2"
 webp = "0.3"
 
