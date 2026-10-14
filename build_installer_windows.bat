@@ -42,11 +42,12 @@ if exist "%WV2%" goto :have_wv2
 echo Downloading the WebView2 bootstrapper...
 curl.exe -fsSL -o "%WV2%.part" "https://go.microsoft.com/fwlink/p/?LinkId=2124703"
 if errorlevel 1 goto :wv2_fail
-powershell -NoProfile -Command "$s = Get-AuthenticodeSignature -LiteralPath '%WV2%.part'; if ($s.Status -ne 'Valid' -or $s.SignerCertificate.Subject -notmatch 'O=Microsoft Corporation') { Write-Host ('Bootstrapper signature: ' + $s.Status + ' ' + $s.SignerCertificate.Subject); exit 1 }"
-if errorlevel 1 goto :wv2_fail
 move /y "%WV2%.part" "%WV2%" >nul
 if errorlevel 1 goto :wv2_fail
 :have_wv2
+REM Package the bootstrapper only if Microsoft signed it (checks cached copies too).
+powershell -NoProfile -Command "$s = Get-AuthenticodeSignature -LiteralPath '%WV2%'; Write-Host ('Bootstrapper signature: ' + $s.Status + ' ' + $s.SignerCertificate.Subject); if ($s.Status -ne 'Valid' -or $s.SignerCertificate.Subject -notmatch '(^|, )O=Microsoft Corporation(,|$)') { exit 1 }"
+if errorlevel 1 goto :wv2_bad_signature
 
 REM Locate ISCC.exe (Inno Setup Compiler).
 REM NOTE: do NOT use  if "%ISCC%"==""  inside a parenthesized block --
@@ -82,6 +83,11 @@ echo.
 pause
 endlocal
 exit /b 0
+
+:wv2_bad_signature
+del /q "%WV2%"
+echo The WebView2 bootstrapper is not signed by Microsoft; deleted it. Run the build again.
+goto :fail
 
 :wv2_fail
 if exist "%WV2%.part" del /q "%WV2%.part"

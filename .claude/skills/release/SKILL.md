@@ -188,13 +188,16 @@ print(json.dumps({
         ]}}],
 }, ensure_ascii=True))
 PY
-curl -sS -o "$TMP/reply.json" -w '%{http_code}\n' -X POST \
+CODE="$(curl -sS -o "$TMP/reply.json" -w '%{http_code}' -X POST \
   -H 'Content-Type: application/json; charset=UTF-8' \
   --data-binary @"$TMP/chat.json" \
-  "${WEBHOOK}&messageReplyOption=REPLY_MESSAGE_FALLBACK_TO_NEW_THREAD"
+  "${WEBHOOK}&messageReplyOption=REPLY_MESSAGE_FALLBACK_TO_NEW_THREAD")"
+echo "Chat HTTP $CODE"
+[ "$CODE" = 200 ] || cat "$TMP/reply.json"   # the reply never contains the URL
+rm -rf "$TMP"
 ```
 
-Expect `200`; a non-200 means read `$TMP/reply.json` (it never contains the URL) and fix the payload. Do not retry blindly - a second 200 posts a duplicate card.
+Run it as ONE command (shell variables do not survive between tool calls). Expect `Chat HTTP 200`; otherwise the reply is printed - fix the payload. Do not retry blindly - a second 200 posts a duplicate card.
 
 ## 11. Report to Abner
 
