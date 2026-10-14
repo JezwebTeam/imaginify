@@ -21,4 +21,5 @@
 ## Ledger
 | Version | Date | Audit | Shipped | Install check | Release |
 |---|---|---|---|---|---|
+| 1.1.0 | 2026-10-14 | blocked -> fixed (8 C, 2 H); 1 C accepted by Abner (crafted-file memory exhaustion inside a third-party decoder; worker-process isolation planned for 1.1.1); past the 4-round limit by Abner's choice - codex x7, fable x1 | First Tauri (Rust) release: never overwrites files, per-image crop with shapes, sRGB colour, animations kept, smaller downloads | mac (windows unchecked) | published + verified |
 | 1.0.1 | 2026-07-02 | pre-ledger | Drag and drop of images and folders; Windows + macOS installer wizards | not recorded | partial (Windows Setup + portable .exe only; no macOS assets, no checksums) |
